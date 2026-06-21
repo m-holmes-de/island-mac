@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+# island:summary=Ensure a tmux session has the standard 4 windows: claude, server, yazi, term.
+# island:args=[session-name]
+#
+# Run automatically via a session-created hook in tmux.conf, or by hand on an
+# existing session: island-tmux-windows <session>
+
+set -euo pipefail
+
+WINDOWS=(claude server yazi term)
+
+sess="${1:-$(tmux display-message -p '#S' 2>/dev/null || true)}"
+[[ -z "$sess" ]] && exit 0
+
+# Idempotent: if a 'claude' window already exists, assume the layout is set up.
+if tmux list-windows -t "$sess" -F '#{window_name}' 2>/dev/null | grep -qx claude; then
+  exit 0
+fi
+
+# Start new windows in the session's current directory.
+dir=$(tmux display-message -p -t "$sess" '#{pane_current_path}' 2>/dev/null || echo "$HOME")
+[[ -d "$dir" ]] || dir="$HOME"
+
+# Rename the session's first window, then create the rest in order.
+# (Setting a name with rename-window / new-window -n disables automatic-rename
+# for that window, so the names persist.)
+first=$(tmux list-windows -t "$sess" -F '#{window_index}' | head -1)
+tmux rename-window -t "$sess:$first" "${WINDOWS[0]}"
+for name in "${WINDOWS[@]:1}"; do
+  tmux new-window -t "$sess" -c "$dir" -n "$name"
+done
+
+# Launch yazi in its window (stays a shell after you quit yazi).
+tmux send-keys -t "$sess:yazi" 'yazi' C-m
+
+# Land on the claude window.
+tmux select-window -t "$sess:${WINDOWS[0]}"
