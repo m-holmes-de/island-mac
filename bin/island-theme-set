@@ -61,6 +61,7 @@ process_template() {
 echo "  Processing templates..."
 process_template "$ISLAND_PATH/templates/ghostty-config.tpl"  "$HOME/.config/ghostty/config"
 process_template "$ISLAND_PATH/templates/tmux-theme.conf.tpl" "$HOME/.config/tmux/theme.conf"
+process_template "$ISLAND_PATH/templates/starship.toml.tpl"   "$HOME/.config/starship.toml"
 
 # Neovim — rewrite the active colorscheme plugin
 NVIM_THEME="$HOME/.config/nvim/lua/plugins/island-theme.lua"

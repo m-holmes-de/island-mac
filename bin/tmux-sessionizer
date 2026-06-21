@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+# tmux-sessionizer — fzf-pick a project directory and open it as a tmux session.
+# Bound to Ctrl+F in default/.zshrc. Named to match the well-known tool / keybind.
+
+set -euo pipefail
+
+# Base directories to search for projects (only those that exist are used).
+BASES=("$HOME/Projects" "$HOME/work" "$HOME/dev" "$HOME/.config")
+
+if [[ $# -eq 1 ]]; then
+  selected="$1"
+else
+  dirs=()
+  for b in "${BASES[@]}"; do [[ -d "$b" ]] && dirs+=("$b"); done
+  selected=$(
+    { find "${dirs[@]}" -mindepth 1 -maxdepth 1 -type d 2>/dev/null; echo "$HOME"; } \
+      | fzf --reverse --height 40% --border --prompt='Session > '
+  ) || exit 0
+fi
+
+[[ -z "$selected" ]] && exit 0
+
+selected_name=$(basename "$selected" | tr '. ' '__')
+tmux_running=$(pgrep -x tmux || true)
+
+# No server and not inside tmux: just start one.
+if [[ -z "${TMUX:-}" && -z "$tmux_running" ]]; then
+  exec tmux new-session -s "$selected_name" -c "$selected"
+fi
+
+# Create the session if it doesn't exist yet.
+if ! tmux has-session -t="$selected_name" 2>/dev/null; then
+  tmux new-session -ds "$selected_name" -c "$selected"
+fi
+
+# Attach or switch depending on whether we're already in tmux.
+if [[ -z "${TMUX:-}" ]]; then
+  exec tmux attach -t "$selected_name"
+else
+  exec tmux switch-client -t "$selected_name"
+fi

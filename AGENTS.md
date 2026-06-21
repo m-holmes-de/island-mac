@@ -27,6 +27,10 @@ All commands start with `island-`. Prefixes indicate purpose:
 
 - `config/` - default configs, copied to `~/.config/` with `cp -n` (no overwrite)
 - `default/` - home-directory dotfiles, copied to `$HOME` with `cp -n` (e.g. `.zshrc`)
+- `default/.zshrc` is **repo-managed**: it is the source of truth and puts
+  `$ISLAND_PATH/bin` on PATH. To change it, edit `default/.zshrc` and ship a
+  migration that copies it over `~/.zshrc` (the migration backs up a pre-existing
+  non-island-mac `~/.zshrc` to `~/.zshrc.pre-island-mac` once).
 - Use each app's native config format (e.g. Ghostty's `config` key=value format)
 - One concern per file where a tool's config is modular
 

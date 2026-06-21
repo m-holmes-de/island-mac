@@ -61,7 +61,7 @@ Any change to deployed configs (`~/.config/`) MUST go through a migration.
 
 ## Theming
 Ported from the Linux `island` repo (desktop theming omitted — macOS only does
-terminal apps + wallpaper). Targets: **ghostty, tmux, neovim, wallpaper**.
+terminal apps + wallpaper). Targets: **ghostty, tmux, neovim, starship, wallpaper**.
 
 - `themes/<name>/colors.sh` defines a `THEME_*` palette + app hooks
   (`THEME_GHOSTTY`, `THEME_NVIM_PLUGIN`, `THEME_NVIM_COLORSCHEME`).

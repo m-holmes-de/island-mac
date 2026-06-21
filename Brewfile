@@ -16,6 +16,10 @@ brew "fzf"       # fuzzy finder (theme picker + LazyVim)
 brew "ripgrep"   # fast grep (LazyVim dependency)
 brew "fd"        # fast find (LazyVim dependency)
 brew "lazygit"   # git TUI (used from nvim)
+brew "starship"  # shell prompt
+brew "zoxide"    # smarter cd
+brew "eza"       # ls replacement (used in .zshrc aliases)
+brew "bat"       # cat replacement (used in .zshrc aliases)
 
 # --- Taps ---
 tap "nikitabobko/tap"   # AeroSpace window manager
