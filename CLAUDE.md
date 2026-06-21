@@ -1,9 +1,11 @@
 # Island-mac — Base macOS setup via Homebrew
 
 ## What is this?
-Island-mac installs a base set of apps (via Homebrew) and deploys their configs on
+Island-mac installs a base set of apps (via Homebrew), the AeroSpace tiling window
+manager, and a themed terminal environment (Ghostty/tmux/Neovim/Yazi/Starship) on
 macOS. It is the macOS counterpart to `island` (the Linux/Hyprland repo) and reuses
-the same migration-based, idempotent install architecture.
+the same migration-based, idempotent install architecture. User-facing docs:
+`README.md`, `docs/keybindings.md`, `docs/architecture.md`.
 
 ## Project structure
 - `install.sh` - Entry point, sources install phases in order

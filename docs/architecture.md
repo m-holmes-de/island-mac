@@ -73,6 +73,34 @@ Migrations handle evolution over time (config changes, new packages).
 | Add a config file for a new tool | Add to `config/` (deployed on next install) + migration to copy it |
 | Change a default setting | Update `config/` + migration to apply to existing installs |
 
+## Theme system
+
+Targets: Ghostty, tmux, Neovim, Starship, and the desktop wallpaper (no desktop
+theming on macOS beyond the wallpaper).
+
+- `themes/<name>/colors.sh` defines a `THEME_*` palette plus app hooks
+  (`THEME_GHOSTTY`, `THEME_NVIM_PLUGIN`, `THEME_NVIM_COLORSCHEME`) and an optional
+  `wallpapers/` directory.
+- `templates/*.tpl` hold `{{THEME_VAR}}` placeholders. `island-theme-set` sources
+  the palette and substitutes every `THEME_*` variable into each template:
+  - `ghostty-config.tpl`  → `~/.config/ghostty/config`
+  - `tmux-theme.conf.tpl` → `~/.config/tmux/theme.conf` (sourced by `tmux.conf`)
+  - `starship.toml.tpl`   → `~/.config/starship.toml`
+  - rewrites `~/.config/nvim/lua/plugins/island-theme.lua` (LazyVim `colorscheme`)
+  - sets the wallpaper from the theme's first `wallpapers/` image
+- State is saved in `~/.local/state/island-mac/current-theme`.
+- `island-theme-set <name> [--dark]` applies a theme; `island-theme-select` is an
+  fzf picker. The `island` TUI also wraps this.
+- These theme-managed files are regenerated on every switch, so customise them via
+  the templates, not the deployed copies. The Ghostty template intentionally keeps
+  `macos-option-as-alt = false`. Yazi is themed statically (Rose Pine), not switched.
+
+### Adding a theme
+
+Add `themes/<name>/colors.sh` (copy an existing one and change the hex values), set
+the `THEME_GHOSTTY` / `THEME_NVIM_*` hooks, optionally add `wallpapers/`, then
+`island-theme-set <name>`.
+
 ## Idempotency
 
 Every operation is safe to re-run:
