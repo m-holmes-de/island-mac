@@ -1,0 +1,106 @@
+#!/bin/bash
+# island:summary=Switch the island-mac theme (ghostty, tmux, neovim, wallpaper).
+# island:args=<theme-name> [--dark]
+
+set -eEo pipefail
+
+ISLAND_PATH="${ISLAND_PATH:-$HOME/.local/share/island-mac}"
+STATE_DIR="$HOME/.local/state/island-mac"
+
+if [[ -z "${1:-}" ]]; then
+  echo "Available themes:"
+  for dir in "$ISLAND_PATH"/themes/*/; do
+    [[ -d "$dir" ]] && echo "  $(basename "$dir")"
+  done
+  echo
+  echo "Usage: island-theme-set <theme-name> [--dark]"
+  exit 1
+fi
+
+THEME="$1"
+THEME_DIR="$ISLAND_PATH/themes/$THEME"
+if [[ ! -d "$THEME_DIR" ]]; then
+  echo "Error: theme '$THEME' not found in $ISLAND_PATH/themes/" >&2
+  exit 1
+fi
+
+echo "Switching to theme: $THEME"
+
+# Load color definitions
+# shellcheck source=/dev/null
+source "$THEME_DIR/colors.sh"
+
+# Optional pure-black background override
+if [[ "${2:-}" == "--dark" ]]; then
+  THEME_BG="#000000"
+  THEME_BG_ALT="#0a0a0a"
+  THEME_BG_HIGHLIGHT="#141414"
+  THEME_BASE="#000000"
+  THEME_SURFACE="#0a0a0a"
+  THEME_OVERLAY="#141414"
+  THEME_NAME="${THEME_NAME} (dark)"
+fi
+
+# Build the {{VAR}} -> value sed program from every THEME_* variable in scope.
+build_sed() {
+  local sed_args=""
+  local var
+  for var in $(compgen -v | grep '^THEME_'); do
+    sed_args+="s|{{${var}}}|${!var}|g;"
+  done
+  echo "$sed_args"
+}
+SED_CMD=$(build_sed)
+
+process_template() {
+  local tpl="$1" dest="$2"
+  mkdir -p "$(dirname "$dest")"
+  sed "$SED_CMD" "$tpl" > "$dest"
+}
+
+echo "  Processing templates..."
+process_template "$ISLAND_PATH/templates/ghostty-config.tpl"  "$HOME/.config/ghostty/config"
+process_template "$ISLAND_PATH/templates/tmux-theme.conf.tpl" "$HOME/.config/tmux/theme.conf"
+
+# Neovim — rewrite the active colorscheme plugin
+NVIM_THEME="$HOME/.config/nvim/lua/plugins/island-theme.lua"
+if [[ -d "$HOME/.config/nvim/lua/plugins" ]]; then
+  cat > "$NVIM_THEME" <<NVEOF
+-- Active colorscheme (managed by island-theme-set, do not edit manually)
+return {
+  "$THEME_NVIM_PLUGIN",
+  lazy = false,
+  priority = 1000,
+  config = function()
+    vim.cmd("colorscheme $THEME_NVIM_COLORSCHEME")
+  end,
+}
+NVEOF
+fi
+
+# Save current theme name
+mkdir -p "$STATE_DIR"
+if [[ "${2:-}" == "--dark" ]]; then
+  echo "${THEME}:dark" > "$STATE_DIR/current-theme"
+else
+  echo "$THEME" > "$STATE_DIR/current-theme"
+fi
+
+# Apply to running components
+echo "  Reloading components..."
+# tmux: reload theme into any running server
+tmux source-file "$HOME/.config/tmux/theme.conf" 2>/dev/null || true
+
+# Wallpaper: use the theme's first wallpaper if present
+THEME_WALLS="$THEME_DIR/wallpapers"
+if [[ -d "$THEME_WALLS" ]]; then
+  first_wall=$(find "$THEME_WALLS" -maxdepth 1 -type f \
+    \( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' -o -iname '*.webp' \) \
+    2>/dev/null | sort | head -1)
+  if [[ -n "$first_wall" ]]; then
+    "$ISLAND_PATH/bin/island-wallpaper-set" "$first_wall" >/dev/null 2>&1 \
+      && echo "  Wallpaper: $(basename "$first_wall")"
+  fi
+fi
+
+echo "  Done. Reload Ghostty with Cmd+Shift+, to pick up the new theme."

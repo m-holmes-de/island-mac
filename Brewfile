@@ -9,7 +9,13 @@
 # --- CLI tools (formulae) ---
 brew "git"
 brew "gh"        # GitHub CLI
-brew "neovim"
+brew "neovim"    # editor (LazyVim distro, configured in config/nvim)
+brew "tmux"      # terminal multiplexer (theme-managed)
+brew "yazi"      # TUI file manager (Rose Pine themed)
+brew "fzf"       # fuzzy finder (theme picker + LazyVim)
+brew "ripgrep"   # fast grep (LazyVim dependency)
+brew "fd"        # fast find (LazyVim dependency)
+brew "lazygit"   # git TUI (used from nvim)
 
 # --- Taps ---
 tap "nikitabobko/tap"   # AeroSpace window manager
@@ -19,3 +25,6 @@ tap "nikitabobko/tap"   # AeroSpace window manager
 cask "ghostty"
 cask "aerospace"        # tiling window manager (i3-like, no SIP changes needed)
 cask "hyperkey"         # Caps Lock -> Hyper (Cmd+Ctrl+Alt); modifier for AeroSpace
+
+# --- Fonts ---
+cask "font-jetbrains-mono-nerd-font"   # used by ghostty, tmux, yazi, nvim

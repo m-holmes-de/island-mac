@@ -1,0 +1,19 @@
+#!/bin/bash
+# island:summary=Set the macOS desktop wallpaper on all displays.
+# island:args=<image-path>
+
+set -eEo pipefail
+
+img="${1:-}"
+if [[ -z "$img" || ! -f "$img" ]]; then
+  echo "usage: island-wallpaper-set <image-path>" >&2
+  exit 1
+fi
+
+# Resolve to an absolute path for AppleScript.
+img="$(cd "$(dirname "$img")" && pwd)/$(basename "$img")"
+
+osascript -e "tell application \"System Events\" to set picture of every desktop to \"$img\"" \
+  || osascript -e "tell application \"System Events\" to tell every desktop to set picture to \"$img\""
+
+echo "Wallpaper set: $(basename "$img")"

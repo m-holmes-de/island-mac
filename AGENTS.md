@@ -79,6 +79,21 @@ Before every commit, verify:
 4. **Syntax check?** `bash -n` on all new/modified shell scripts.
 5. **Brewfile updated?** If you added a package, it must be in the `Brewfile`.
 
+# Theming
+
+Targets: ghostty, tmux, neovim, wallpaper (no desktop theming on macOS).
+
+- `themes/<name>/colors.sh` defines `THEME_*` vars (palette + app hooks). Add a new
+  theme by adding a `colors.sh` (and optional `wallpapers/`).
+- `templates/*.tpl` use `{{THEME_VAR}}` placeholders. `island-theme-set` substitutes
+  every `THEME_*` var in scope and renders each template into `~/.config/`.
+- Adding a templated app: add `templates/<app>.tpl`, then a `process_template` line in
+  `bin/island-theme-set`. Use the existing `THEME_*` vars; don't hard-code hex.
+- The ghostty template must always include `macos-option-as-alt = false`.
+- Changing a template/palette follows the migration rule: update the template/`colors.sh`
+  AND ship a migration (the migration can just re-run `island-theme-set "$current"`).
+- yazi is themed statically (not switched), matching island.
+
 # Install Scripts
 
 - `install/*/all.sh` orchestrate each phase

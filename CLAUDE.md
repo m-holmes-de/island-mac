@@ -13,6 +13,8 @@ the same migration-based, idempotent install architecture.
 - `default/` - Home-directory dotfiles (e.g. `.zshrc`), copied to `$HOME` (never overwrites)
 - `install/` - Install phase scripts (preflight, packaging, config, post-install)
 - `migrations/` - Timestamped migration scripts for evolving deployed configs
+- `themes/` - Theme palettes (`<name>/colors.sh` + optional `wallpapers/`)
+- `templates/` - `{{THEME_VAR}}` templates rendered into `~/.config/` on theme switch
 - `docs/` - Documentation
 
 ## Key paths at runtime
@@ -56,6 +58,26 @@ Any change to deployed configs (`~/.config/`) MUST go through a migration.
 - `mkdir -p` for directory creation
 - `cp -n` / `cp -Rn` for config deployment (no-clobber)
 - Migration state files in `~/.local/state/island-mac/migrations/` prevent re-execution
+
+## Theming
+Ported from the Linux `island` repo (desktop theming omitted — macOS only does
+terminal apps + wallpaper). Targets: **ghostty, tmux, neovim, wallpaper**.
+
+- `themes/<name>/colors.sh` defines a `THEME_*` palette + app hooks
+  (`THEME_GHOSTTY`, `THEME_NVIM_PLUGIN`, `THEME_NVIM_COLORSCHEME`).
+- `templates/*.tpl` hold `{{THEME_VAR}}` placeholders. `island-theme-set` sources
+  the palette, sed-substitutes every `THEME_*` var, and writes:
+  - `templates/ghostty-config.tpl` -> `~/.config/ghostty/config`
+  - `templates/tmux-theme.conf.tpl` -> `~/.config/tmux/theme.conf` (sourced by tmux.conf)
+  - rewrites `~/.config/nvim/lua/plugins/island-theme.lua` (active colorscheme)
+  - sets the macOS wallpaper to the theme's first `wallpapers/` image
+- State: `~/.local/state/island-mac/current-theme`.
+- `island-theme-set <name> [--dark]` applies a theme; `island-theme-select` is an
+  fzf picker (pops up inside tmux, like tmux-sessionizer).
+- yazi is themed statically (Rose Pine in `config/yazi/`), not switched — matches island.
+- The ghostty template MUST keep `macos-option-as-alt = false` (regeneration would
+  otherwise drop it and break Option+L = @).
+- Themes available: `rose-pine-moon` (default), `one-dark-pro`.
 
 ## Testing
 Run `./install.sh` on a macOS machine. It is idempotent. Run it twice — the second

@@ -1,0 +1,48 @@
+#!/bin/bash
+# island:summary=Pick a theme with fzf and apply it (like tmux-sessionizer).
+
+set -eEo pipefail
+
+ISLAND_PATH="${ISLAND_PATH:-$HOME/.local/share/island-mac}"
+CURRENT=$(cat "$HOME/.local/state/island-mac/current-theme" 2>/dev/null || echo "none")
+
+if ! command -v fzf >/dev/null 2>&1; then
+  echo "fzf is not installed. Run: island-pkg-add fzf" >&2
+  exit 1
+fi
+
+# Build the candidate list: each theme, plus its --dark variant.
+# Mark the active one with a dot.
+themes=()
+for dir in "$ISLAND_PATH"/themes/*/; do
+  [[ -d "$dir" ]] || continue
+  name=$(basename "$dir")
+  for variant in "$name" "$name (dark)"; do
+    state="$name"
+    [[ "$variant" == *"(dark)"* ]] && state="${name}:dark"
+    if [[ "$state" == "$CURRENT" ]]; then
+      themes+=("$variant  ●")
+    else
+      themes+=("$variant")
+    fi
+  done
+done
+
+# fzf picker. Inside tmux, pop it up like tmux-sessionizer; otherwise inline.
+fzf_pick() {
+  if [[ -n "${TMUX:-}" ]] && tmux display-popup -h 40% -w 50% -E true 2>/dev/null; then
+    printf '%s\n' "${themes[@]}" | \
+      tmux display-popup -h 40% -w 50% -E "fzf --reverse --prompt='Theme > '"
+  else
+    printf '%s\n' "${themes[@]}" | fzf --reverse --height 40% --border --prompt='Theme > '
+  fi
+}
+
+selected=$(fzf_pick) || exit 0
+selected="${selected%  ●}"   # strip active marker
+
+if [[ "$selected" == *"(dark)"* ]]; then
+  "$ISLAND_PATH/bin/island-theme-set" "${selected% (dark)}" --dark
+else
+  "$ISLAND_PATH/bin/island-theme-set" "$selected"
+fi
