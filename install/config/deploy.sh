@@ -6,8 +6,9 @@ for dir in "$ISLAND_PATH"/config/*/; do
   [[ -d "$dir" ]] || continue
   dirname=$(basename "$dir")
   mkdir -p ~/.config/"$dirname"
-  # cp -Rn: recursive, no-clobber (never overwrite existing)
-  cp -Rn "$dir"* ~/.config/"$dirname"/ 2>/dev/null || true
+  # cp -Rn: recursive, no-clobber. "$dir." copies contents INCLUDING dotfiles
+  # (e.g. nvim/.neoconf.json) and is safe on an empty dir, unlike "$dir"*.
+  cp -Rn "$dir." ~/.config/"$dirname"/ 2>/dev/null || true
 done
 
 # Copy standalone config files

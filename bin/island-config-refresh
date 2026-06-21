@@ -25,5 +25,7 @@ read -rp "Overwrite $dest with island-mac defaults? [y/N] " answer
 [[ "$answer" =~ ^[Yy]$ ]] || { echo "Aborted."; exit 0; }
 
 mkdir -p "$dest"
-cp -Rf "$src"/* "$dest"/
+# "$src/." copies the directory contents including dotfiles (e.g. .neoconf.json),
+# and doesn't break on an empty dir the way a "$src"/* glob would.
+cp -Rf "$src/." "$dest/"
 echo "Refreshed $dest from island-mac defaults."

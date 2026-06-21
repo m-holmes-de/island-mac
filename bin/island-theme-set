@@ -44,9 +44,14 @@ fi
 # Build the {{VAR}} -> value sed program from every THEME_* variable in scope.
 build_sed() {
   local sed_args=""
-  local var
+  local var val
   for var in $(compgen -v | grep '^THEME_'); do
-    sed_args+="s|{{${var}}}|${!var}|g;"
+    val="${!var}"
+    # Escape sed replacement specials: backslash first, then & and the | delimiter.
+    val="${val//\\/\\\\}"
+    val="${val//&/\\&}"
+    val="${val//|/\\|}"
+    sed_args+="s|{{${var}}}|${val}|g;"
   done
   echo "$sed_args"
 }

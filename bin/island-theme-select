@@ -28,17 +28,10 @@ for dir in "$ISLAND_PATH"/themes/*/; do
   done
 done
 
-# fzf picker. Inside tmux, pop it up like tmux-sessionizer; otherwise inline.
-fzf_pick() {
-  if [[ -n "${TMUX:-}" ]] && tmux display-popup -h 40% -w 50% -E true 2>/dev/null; then
-    printf '%s\n' "${themes[@]}" | \
-      tmux display-popup -h 40% -w 50% -E "fzf --reverse --prompt='Theme > '"
-  else
-    printf '%s\n' "${themes[@]}" | fzf --reverse --height 40% --border --prompt='Theme > '
-  fi
-}
-
-selected=$(fzf_pick) || exit 0
+# Inline fzf picker — works in any terminal, including inside tmux. (A
+# display-popup can't receive the piped list, so we keep it simple and inline.)
+selected=$(printf '%s\n' "${themes[@]}" \
+  | fzf --reverse --height 40% --border --prompt='Theme > ') || exit 0
 selected="${selected%  ●}"   # strip active marker
 
 if [[ "$selected" == *"(dark)"* ]]; then

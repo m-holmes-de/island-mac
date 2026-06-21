@@ -10,6 +10,14 @@ export PATH="$ISLAND_PATH/bin:$PATH"
 # Sync repo to install location if running from git checkout
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 if [[ "$SCRIPT_DIR" != "$ISLAND_PATH" ]]; then
+  # Safety: `rsync --delete` removes anything at the destination not in the repo.
+  # Refuse if ISLAND_PATH points at a non-empty dir that isn't already an
+  # island-mac checkout (guards against a typo'd/overridden ISLAND_PATH).
+  if [[ -d "$ISLAND_PATH" && -n "$(ls -A "$ISLAND_PATH" 2>/dev/null)" && ! -f "$ISLAND_PATH/install.sh" ]]; then
+    echo "Refusing to sync into '$ISLAND_PATH': not empty and not an island-mac checkout." >&2
+    echo "Point ISLAND_PATH at an empty directory or the existing install location." >&2
+    exit 1
+  fi
   mkdir -p "$ISLAND_PATH"
   rsync -a --delete --exclude='.git' "$SCRIPT_DIR/" "$ISLAND_PATH/"
 fi

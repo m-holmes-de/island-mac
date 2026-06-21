@@ -21,10 +21,17 @@ for file in "$ISLAND_PATH"/migrations/*.sh; do
       touch "$STATE_DIR/$filename"
     else
       echo -e "\e[31mMigration ${filename%.sh} failed.\e[0m"
-      read -rp "Skip and continue? [y/N] " answer
-      if [[ "$answer" =~ ^[Yy]$ ]]; then
-        touch "$STATE_DIR/skipped/$filename"
+      # Only prompt when attached to a terminal. Under the installer, output is
+      # redirected to a log (run_logged), so a prompt would hang invisibly.
+      if [[ -t 0 && -t 1 ]]; then
+        read -rp "Skip and continue? [y/N] " answer
+        if [[ "$answer" =~ ^[Yy]$ ]]; then
+          touch "$STATE_DIR/skipped/$filename"
+        else
+          exit 1
+        fi
       else
+        echo "Non-interactive run — aborting. Re-run 'island-migrate' in a terminal to skip." >&2
         exit 1
       fi
     fi
