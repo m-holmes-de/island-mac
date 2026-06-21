@@ -1,0 +1,20 @@
+# Island-mac Ghostty config
+
+# Let macOS compose special characters with Option (e.g. Option+L = @ on a
+# German layout). Set to "true" only if you want Option to act as Alt/Meta.
+macos-option-as-alt = false
+
+font-family = JetBrainsMono Nerd Font
+font-size = 13
+
+window-padding-x = 8
+window-padding-y = 8
+
+cursor-style = block
+cursor-style-blink = false
+
+background-opacity = 0.97
+background-blur = true
+confirm-close-surface = false
+
+mouse-scroll-multiplier = 0.95

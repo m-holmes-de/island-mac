@@ -1,0 +1,36 @@
+#!/bin/bash
+# island:summary=Run all pending migrations to bring the system up to date.
+
+set -eEo pipefail
+
+ISLAND_PATH="${ISLAND_PATH:-$HOME/.local/share/island-mac}"
+STATE_DIR="$HOME/.local/state/island-mac/migrations"
+mkdir -p "$STATE_DIR"
+mkdir -p "$STATE_DIR/skipped"
+
+pending=0
+for file in "$ISLAND_PATH"/migrations/*.sh; do
+  [[ -f "$file" ]] || continue
+  filename=$(basename "$file")
+
+  if [[ ! -f "$STATE_DIR/$filename" && ! -f "$STATE_DIR/skipped/$filename" ]]; then
+    pending=1
+    echo -e "\e[32m\nRunning migration (${filename%.sh})\e[0m"
+
+    if bash "$file"; then
+      touch "$STATE_DIR/$filename"
+    else
+      echo -e "\e[31mMigration ${filename%.sh} failed.\e[0m"
+      read -rp "Skip and continue? [y/N] " answer
+      if [[ "$answer" =~ ^[Yy]$ ]]; then
+        touch "$STATE_DIR/skipped/$filename"
+      else
+        exit 1
+      fi
+    fi
+  fi
+done
+
+if (( pending == 0 )); then
+  echo "No pending migrations."
+fi

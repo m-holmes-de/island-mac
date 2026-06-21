@@ -1,0 +1,16 @@
+island_step "Post-install"
+run_logged "$ISLAND_INSTALL/post-install/migrations.sh"
+
+island_header
+echo -e "\e[32m  Installation complete!\e[0m"
+echo ""
+echo "  Installed base apps: see Brewfile"
+echo "  Configs deployed to: ~/.config/ (existing files never overwritten)"
+echo ""
+echo "  Day-to-day:"
+echo "    island-pkg-add <formula>     Add a CLI tool"
+echo "    island-pkg-add --cask <app>  Add a GUI app"
+echo "    island-migrate               Apply pending config migrations"
+echo ""
+echo "  Docs: $ISLAND_PATH/docs/architecture.md"
+echo ""

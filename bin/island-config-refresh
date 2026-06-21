@@ -1,0 +1,29 @@
+#!/bin/bash
+# island:summary=Reset a deployed config back to the island-mac default (overwrites your live copy).
+# island:args=<config-dir-name>   e.g. ghostty
+
+set -eEo pipefail
+
+ISLAND_PATH="${ISLAND_PATH:-$HOME/.local/share/island-mac}"
+
+name="${1:-}"
+if [[ -z "$name" ]]; then
+  echo "usage: island-config-refresh <config-dir-name>   (e.g. ghostty)" >&2
+  echo "available:" >&2
+  ls -1 "$ISLAND_PATH/config" >&2
+  exit 1
+fi
+
+src="$ISLAND_PATH/config/$name"
+if [[ ! -d "$src" ]]; then
+  echo "No such config in island-mac: $name" >&2
+  exit 1
+fi
+
+dest="$HOME/.config/$name"
+read -rp "Overwrite $dest with island-mac defaults? [y/N] " answer
+[[ "$answer" =~ ^[Yy]$ ]] || { echo "Aborted."; exit 0; }
+
+mkdir -p "$dest"
+cp -Rf "$src"/* "$dest"/
+echo "Refreshed $dest from island-mac defaults."
