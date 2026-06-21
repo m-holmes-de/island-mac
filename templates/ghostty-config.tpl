@@ -9,7 +9,11 @@ background = {{THEME_BG}}
 macos-option-as-alt = false
 
 font-family = JetBrainsMono Nerd Font
-font-size = 13
+font-size = 16
+
+# Clean titlebar: blank the title text and hide the folder proxy icon.
+title = " "
+macos-titlebar-proxy-icon = hidden
 
 window-padding-x = 8
 window-padding-y = 8
