@@ -1,0 +1,110 @@
+#!/usr/bin/env bash
+# island:summary=island-mac control center — a beautiful gum TUI to manage the setup.
+
+set -uo pipefail
+
+ISLAND_PATH="${ISLAND_PATH:-$HOME/.local/share/island-mac}"
+STATE_DIR="$HOME/.local/state/island-mac"
+export ISLAND_PATH
+
+if ! command -v gum >/dev/null 2>&1; then
+  echo "gum is required. Install it with: island-pkg-add gum" >&2
+  exit 1
+fi
+
+# ── Palette ───────────────────────────────────────────────────────────────
+# Load the ACTIVE theme's colors so the TUI matches whatever theme is set.
+load_palette() {
+  # Rose Pine defaults (used if the theme's colors.sh is missing)
+  THEME_IRIS="#c4a7e7"; THEME_FOAM="#9ccfd8"; THEME_GOLD="#f6c177"
+  THEME_LOVE="#eb6f92"; THEME_ACCENT="#31748f"; THEME_PINE="#31748f"
+  THEME_FG="#e0def4"; THEME_FG_MUTED="#6e6a86"; THEME_NAME="rose-pine-moon"
+  local cur theme
+  cur=$(cat "$STATE_DIR/current-theme" 2>/dev/null || echo rose-pine-moon)
+  theme="${cur%:dark}"
+  # shellcheck source=/dev/null
+  [[ -f "$ISLAND_PATH/themes/$theme/colors.sh" ]] && source "$ISLAND_PATH/themes/$theme/colors.sh"
+}
+
+# ── Header ────────────────────────────────────────────────────────────────
+header() {
+  load_palette
+  local cur; cur=$(cat "$STATE_DIR/current-theme" 2>/dev/null || echo none)
+  local title statusbar
+  title=$(gum join --horizontal \
+    "$(gum style --foreground "$THEME_IRIS" --bold "󰠳  island-mac")" \
+    "$(gum style --foreground "$THEME_FG_MUTED" --italic "  control center")")
+  statusbar=$(gum join --horizontal \
+    "$(gum style --foreground "$THEME_FG_MUTED" "theme  ")" \
+    "$(gum style --foreground "$THEME_FOAM" "$cur  ")" \
+    "$(gum style --foreground "$THEME_ACCENT" "●")")
+  gum style \
+    --border double --border-foreground "$THEME_IRIS" \
+    --padding "1 6" --margin "1 0 0 0" --align center \
+    "$title" "$statusbar"
+}
+
+# ── Actions ───────────────────────────────────────────────────────────────
+switch_theme() {
+  load_palette
+  local entries=() dir name
+  for dir in "$ISLAND_PATH"/themes/*/; do
+    [[ -d "$dir" ]] || continue
+    name=$(basename "$dir")
+    entries+=("$name" "$name (dark)")
+  done
+
+  local sel
+  sel=$(printf '%s\n' "${entries[@]}" | gum choose \
+    --header "  Pick a theme" \
+    --header.foreground "$THEME_GOLD" \
+    --cursor "󰁔 " \
+    --cursor.foreground "$THEME_LOVE" \
+    --selected.foreground "$THEME_FOAM") || return 0
+
+  if [[ "$sel" == *"(dark)"* ]]; then
+    "$ISLAND_PATH/bin/island-theme-set" "${sel% (dark)}" --dark
+  else
+    "$ISLAND_PATH/bin/island-theme-set" "$sel"
+  fi
+
+  load_palette
+  gum style --foreground "$THEME_FOAM" --margin "1 0 0 2" \
+    "  Applied $sel — reload Ghostty with Cmd+Shift+,"
+  sleep 1.2
+}
+
+update_apps() {
+  load_palette
+  clear; header
+  gum style --foreground "$THEME_GOLD" --bold --margin "1 0 0 2" \
+    "  Updating Homebrew & all apps"
+  echo
+  "$ISLAND_PATH/bin/island-update" || true
+  echo
+  gum style --foreground "$THEME_FG_MUTED" --margin "0 0 1 2" "Press Enter to return…"
+  read -r _
+}
+
+# ── Main loop ─────────────────────────────────────────────────────────────
+while true; do
+  clear
+  header
+  load_palette
+
+  choice=$(gum choose \
+    --header "  What would you like to do?" \
+    --header.foreground "$THEME_GOLD" \
+    --cursor "󰁔 " \
+    --cursor.foreground "$THEME_LOVE" \
+    --selected.foreground "$THEME_FOAM" \
+    "󰏘  Switch theme" \
+    "󰚰  Update apps" \
+    "󰗼  Quit") || break
+
+  case "$choice" in
+    *"Switch theme"*) switch_theme ;;
+    *"Update apps"*)  update_apps ;;
+    *"Quit"*)         clear; break ;;
+  esac
+done

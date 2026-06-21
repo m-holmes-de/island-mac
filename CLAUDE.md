@@ -23,6 +23,9 @@ the same migration-based, idempotent install architecture.
 - User configs: `~/.config/<app>/` (e.g. `~/.config/ghostty/`)
 
 ## Development commands
+- `island` - Control-center TUI (gum): switch theme, update apps. Theme-aware
+  (sources the active theme's `colors.sh` so its colors match). Add an action by
+  adding a menu line + a `case` branch in `bin/island`.
 - `./install.sh` - Run full install (idempotent, safe to re-run)
 - `island-migrate` - Run pending migrations only
 - `island-pkg-add <formula>` / `island-pkg-add --cask <app>` - Add a package idempotently
