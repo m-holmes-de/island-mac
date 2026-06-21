@@ -99,12 +99,14 @@ while true; do
     --cursor.foreground "$THEME_LOVE" \
     --selected.foreground "$THEME_FOAM" \
     "󰏘  Switch theme" \
+    "󰸉  Set wallpaper" \
     "󰚰  Update apps" \
     "󰗼  Quit") || break
 
   case "$choice" in
-    *"Switch theme"*) switch_theme ;;
-    *"Update apps"*)  update_apps ;;
-    *"Quit"*)         clear; break ;;
+    *"Switch theme"*)  switch_theme ;;
+    *"Set wallpaper"*) "$ISLAND_PATH/bin/island-wallpaper-select" || true ;;
+    *"Update apps"*)   update_apps ;;
+    *"Quit"*)          clear; break ;;
   esac
 done

@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+# island:summary=Pick a wallpaper from the active theme (fzf + image preview) and set it.
+
+set -euo pipefail
+
+ISLAND_PATH="${ISLAND_PATH:-$HOME/.local/share/island-mac}"
+STATE_DIR="$HOME/.local/state/island-mac"
+
+command -v fzf >/dev/null 2>&1 || { echo "fzf is required: island-pkg-add fzf" >&2; exit 1; }
+
+# Wallpapers are scoped to the currently active theme.
+cur=$(cat "$STATE_DIR/current-theme" 2>/dev/null || echo rose-pine-moon)
+theme="${cur%:dark}"
+walls="$ISLAND_PATH/themes/$theme/wallpapers"
+if [[ ! -d "$walls" ]]; then
+  echo "Theme '$theme' has no wallpapers/ directory." >&2
+  exit 0
+fi
+
+# Collect image files (bash 3.2-safe: no mapfile).
+files=()
+while IFS= read -r f; do
+  files+=("$f")
+done < <(find "$walls" -maxdepth 1 -type f \
+  \( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.webp' -o -iname '*.bmp' \) | sort)
+
+if (( ${#files[@]} == 0 )); then
+  echo "No wallpapers found in $walls" >&2
+  exit 0
+fi
+
+# fzf lists basenames (--with-nth -1 over the / delimiter) but returns full paths.
+selected=$(printf '%s\n' "${files[@]}" \
+  | fzf --with-nth -1 --delimiter / \
+        --preview "$ISLAND_PATH/bin/island-wallpaper-preview {}" \
+        --preview-window 'right:65%' \
+        --prompt "Wallpaper ($theme) > " \
+        --header 'up/down to preview · Enter to set') || exit 0
+
+[[ -n "$selected" ]] && "$ISLAND_PATH/bin/island-wallpaper-set" "$selected"

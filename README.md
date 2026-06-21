@@ -44,8 +44,9 @@ See the [`Brewfile`](Brewfile) for the full package list.
 island
 ```
 
-A gum TUI to manage the setup — switch theme, update apps (`brew update && upgrade
-&& cleanup`). Theme-aware (its colors match the active theme).
+A gum TUI to manage the setup — switch theme, set wallpaper (scoped to the active
+theme, with a live image preview), update apps (`brew update && upgrade &&
+cleanup`). Theme-aware (its colors match the active theme).
 
 ## Theming
 
@@ -87,6 +88,7 @@ picker). Every new tmux session auto-opens 4 windows: `claude / server / yazi / 
 | `island-pkg-add [--cask] <pkg>` | Install a package + record it in the Brewfile |
 | `island-migrate` | Run pending config migrations |
 | `island-config-refresh <name>` | Reset a deployed config to the default |
+| `island-wallpaper-select` | Pick a wallpaper from the active theme (fzf + image preview) |
 | `island-wallpaper-set <img>` | Set the desktop wallpaper |
 | `island-tmux-windows` | Build the standard tmux window layout |
 | `tmux-sessionizer` | fzf project-session picker |

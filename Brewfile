@@ -21,6 +21,7 @@ brew "zoxide"    # smarter cd
 brew "eza"       # ls replacement (used in .zshrc aliases)
 brew "bat"       # cat replacement (used in .zshrc aliases)
 brew "gum"       # TUI toolkit (powers the `island` control center)
+brew "chafa"     # terminal image renderer (wallpaper preview in the picker)
 
 # --- Taps ---
 tap "nikitabobko/tap"   # AeroSpace window manager
