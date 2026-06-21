@@ -12,8 +12,14 @@ cols="${FZF_PREVIEW_COLUMNS:-${COLUMNS:-60}}"
 lines="${FZF_PREVIEW_LINES:-${LINES:-30}}"
 
 if command -v chafa >/dev/null 2>&1; then
-  # kitty graphics protocol (Ghostty supports it); passthrough auto-handles tmux.
-  chafa -f kitty --passthrough auto --animate off -s "${cols}x${lines}" "$img" 2>/dev/null && exit 0
+  # Outside a multiplexer: crisp kitty graphics (Ghostty native — fast and clean).
+  # Inside tmux: symbol/half-block rendering instead. kitty-over-tmux-passthrough
+  # in an fzf preview re-transmits the whole image every keypress (slow) and
+  # ghosts/misaligns on redraw; symbols are plain colored text — instant and stable.
+  if [[ -z "${TMUX:-}" ]]; then
+    chafa -f kitty --animate off -s "${cols}x${lines}" "$img" 2>/dev/null && exit 0
+  fi
+  chafa -f symbols --animate off -s "${cols}x${lines}" "$img" 2>/dev/null && exit 0
 fi
 
 # Fallback: name + dimensions if chafa is unavailable.
