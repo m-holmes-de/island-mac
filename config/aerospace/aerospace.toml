@@ -21,7 +21,16 @@ default-root-container-orientation = 'auto'
 on-focused-monitor-changed = ['move-mouse monitor-lazy-center']
 
 [key-mapping]
+# AeroSpace binds to physical key positions, not the active macOS layout's
+# characters. German QWERTZ shares every letter/number position with US-QWERTY
+# except Z<->Y. All bindings in this file use keys that sit in identical
+# positions on a DE board, so they match the printed labels. We start from the
+# qwerty preset and swap Z/Y below so those two notations also match DE labels.
 preset = 'qwerty'
+
+[key-mapping.key-notation-to-key-code]
+z = 'y'   # DE 'Z' key sits where US-QWERTY has 'Y'
+y = 'z'   # DE 'Y' key sits where US-QWERTY has 'Z'
 
 [gaps]
 inner.horizontal = 8
@@ -30,6 +39,14 @@ outer.left = 8
 outer.bottom = 8
 outer.top = 8
 outer.right = 8
+
+# --- Window rules ---
+# Shottr's screenshot/annotation window must stay visible and on top after a
+# capture. Float it so the tiler never pushes it behind other windows.
+# (AeroSpace can't auto-center floating windows; Shottr controls its position.)
+[[on-window-detected]]
+if.app-id = 'cc.ffitch.shottr'
+run = ['layout floating']
 
 [mode.main.binding]
 
@@ -52,8 +69,8 @@ cmd-ctrl-alt-shift-k = 'move up'
 cmd-ctrl-alt-shift-l = 'move right'
 
 # --- Resize ---
-cmd-ctrl-alt-minus = 'resize smart -50'
-cmd-ctrl-alt-equal = 'resize smart +50'
+cmd-ctrl-alt-s = 'resize smart -50'   # S = Shrink
+cmd-ctrl-alt-d = 'resize smart +50'   # D = grow (bigger)
 
 # --- Switch workspace / desktop (Hyper + number) ---
 cmd-ctrl-alt-1 = 'workspace 1'
