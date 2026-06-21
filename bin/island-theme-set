@@ -68,13 +68,11 @@ NVIM_THEME="$HOME/.config/nvim/lua/plugins/island-theme.lua"
 if [[ -d "$HOME/.config/nvim/lua/plugins" ]]; then
   cat > "$NVIM_THEME" <<NVEOF
 -- Active colorscheme (managed by island-theme-set, do not edit manually)
+-- Set via LazyVim's colorscheme opt so LazyVim applies it at the right time
+-- (a plain vim.cmd("colorscheme ...") loses the race with LazyVim's default).
 return {
-  "$THEME_NVIM_PLUGIN",
-  lazy = false,
-  priority = 1000,
-  config = function()
-    vim.cmd("colorscheme $THEME_NVIM_COLORSCHEME")
-  end,
+  { "$THEME_NVIM_PLUGIN", lazy = false, priority = 1000 },
+  { "LazyVim/LazyVim", opts = { colorscheme = "$THEME_NVIM_COLORSCHEME" } },
 }
 NVEOF
 fi
