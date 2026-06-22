@@ -82,6 +82,7 @@ cmd-ctrl-alt-6 = 'workspace 6'
 cmd-ctrl-alt-7 = 'workspace 7'
 cmd-ctrl-alt-8 = 'workspace 8'
 cmd-ctrl-alt-9 = 'workspace 9'
+cmd-ctrl-alt-0 = 'workspace 10'
 
 # --- Move focused window to workspace (Hyper + Shift + number) ---
 cmd-ctrl-alt-shift-1 = 'move-node-to-workspace 1'
@@ -93,6 +94,7 @@ cmd-ctrl-alt-shift-6 = 'move-node-to-workspace 6'
 cmd-ctrl-alt-shift-7 = 'move-node-to-workspace 7'
 cmd-ctrl-alt-shift-8 = 'move-node-to-workspace 8'
 cmd-ctrl-alt-shift-9 = 'move-node-to-workspace 9'
+cmd-ctrl-alt-shift-0 = 'move-node-to-workspace 10'
 
 # --- Workspace navigation ---
 cmd-ctrl-alt-tab = 'workspace-back-and-forth'

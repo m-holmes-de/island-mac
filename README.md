@@ -73,7 +73,7 @@ Full reference: [docs/keybindings.md](docs/keybindings.md). Highlights
 | Hyper + S / D | Shrink / grow window |
 | Hyper + T / A | Tiling / accordion layout |
 | Hyper + M / F | Fullscreen / float toggle |
-| Hyper + 1–9 | Switch desktop (+ Shift to send window) |
+| Hyper + 1–9, 0 | Switch desktop 1–10 (+ Shift to send window) |
 
 **tmux** prefix is **Ctrl+Space**. **Ctrl+F** opens `tmux-sessionizer` (fzf project
 picker). Every new tmux session auto-opens 4 windows: `claude / server / yazi / term`.

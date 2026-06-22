@@ -14,8 +14,8 @@
 | Hyper + A | Accordion layout |
 | Hyper + M | Fullscreen (maximize) |
 | Hyper + F | Toggle floating / tiling |
-| Hyper + 1–9 | Switch to desktop 1–9 |
-| Hyper + Shift + 1–9 | Move window to desktop 1–9 |
+| Hyper + 1–9, 0 | Switch to desktop 1–10 (0 = workspace 10) |
+| Hyper + Shift + 1–9, 0 | Move window to desktop 1–10 |
 | Hyper + Tab | Previous desktop (back-and-forth) |
 | Hyper + Shift + Tab | Move workspace to next monitor |
 | Hyper + ; | Enter service mode (key is `ö` on a DE keyboard) |
