@@ -53,7 +53,7 @@ run = ['layout floating']
 # --- Layout & window actions (mnemonic letters) ---
 cmd-ctrl-alt-t = 'layout tiles horizontal vertical'       # T = Tiling
 cmd-ctrl-alt-a = 'layout accordion horizontal vertical'   # A = Accordion
-cmd-ctrl-alt-m = 'fullscreen'                             # M = Maximize (fullscreen)
+cmd-ctrl-alt-m = ['fullscreen on', 'mode monocle']        # M = Maximize -> monocle mode
 cmd-ctrl-alt-f = 'layout floating tiling'                 # F = Float (toggle floating / tiling)
 
 # --- Focus (Hyper + h/j/k/l) ---
@@ -113,3 +113,17 @@ cmd-ctrl-alt-shift-h = ['join-with left', 'mode main']
 cmd-ctrl-alt-shift-j = ['join-with down', 'mode main']
 cmd-ctrl-alt-shift-k = ['join-with up', 'mode main']
 cmd-ctrl-alt-shift-l = ['join-with right', 'mode main']
+
+# --- Monocle: maximized window + flip between other maximized windows ---
+# Hyper+M maximizes the focused window and enters this mode. Hyper+h/j/k/l then
+# moves focus to a neighbouring window: focusing a sibling auto-exits the old
+# window's fullscreen (AeroSpace behaviour), and we immediately re-fullscreen
+# the newly focused one — so it looks like switching between full-screen windows.
+# Hyper+M un-maximizes and returns to tiling. Unbound keys pass through, so you
+# can keep typing in the maximized window (no plain Esc capture for vim users).
+[mode.monocle.binding]
+cmd-ctrl-alt-m = ['fullscreen off', 'mode main']
+cmd-ctrl-alt-h = ['focus left', 'fullscreen on']
+cmd-ctrl-alt-j = ['focus down', 'fullscreen on']
+cmd-ctrl-alt-k = ['focus up', 'fullscreen on']
+cmd-ctrl-alt-l = ['focus right', 'fullscreen on']

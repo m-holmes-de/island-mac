@@ -12,7 +12,7 @@
 | Hyper + S / D | Shrink / grow window |
 | Hyper + T | Tiling layout |
 | Hyper + A | Accordion layout |
-| Hyper + M | Fullscreen (maximize) |
+| Hyper + M | Maximize → monocle mode (un-maximize with Hyper + M) |
 | Hyper + F | Toggle floating / tiling |
 | Hyper + 1–9, 0 | Switch to desktop 1–10 (0 = workspace 10) |
 | Hyper + Shift + 1–9, 0 | Move window to desktop 1–10 |
@@ -28,6 +28,16 @@
 | R | Flatten / reset the layout |
 | Backspace | Close all windows but the focused one |
 | Hyper + Shift + H/J/K/L | Join window with neighbor (build splits) |
+
+**Monocle mode** (after Hyper + M maximizes a window):
+
+| Key | Action |
+|-----|--------|
+| Hyper + H/J/K/L | Flip to the neighbouring window, keeping it maximized |
+| Hyper + M | Un-maximize and return to tiling |
+
+> While maximized you stay in monocle mode; unbound keys pass through, so you can
+> keep typing in the window (Esc is **not** captured). Press Hyper + M to leave.
 
 > The Hyper key is the full ⌘⌃⌥ chord, so plain `Option+key` (e.g. `Option+L` = `@`
 > on a German layout) is unaffected. Keybindings are QWERTZ-aware (Z/Y swapped).
