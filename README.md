@@ -77,6 +77,8 @@ Full reference: [docs/keybindings.md](docs/keybindings.md). Highlights
 
 **tmux** prefix is **Ctrl+Space**. **Ctrl+F** opens `tmux-sessionizer` (fzf project
 picker). Every new tmux session auto-opens 4 windows: `claude / server / yazi / term`.
+If the session's project has a `.metamind-instance.json` with a `branchColor`, the
+session name is tinted with that color in the status bar.
 
 ## Commands
 

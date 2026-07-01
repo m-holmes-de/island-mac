@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+# island:summary=Tint a tmux session's name with the project's per-worktree branch color.
+# island:args=[session-name]
+#
+# Reads .metamind-instance.json (".branchColor": "#RRGGBB") from the session's
+# start directory — searching upward like a git root — and sets a session-scoped
+# status-left so the session name renders on that background. The foreground is
+# picked black/white by perceived luminance for contrast. Sessions with no such
+# file are left untouched and keep the active theme's default status-left.
+#
+# Runs automatically via the session-created hook in tmux.conf, or by hand on an
+# existing session: island-tmux-session-color <session>
+
+set -euo pipefail
+
+sess="${1:-$(tmux display-message -p '#S' 2>/dev/null || true)}"
+[[ -z "$sess" ]] && exit 0
+
+command -v jq >/dev/null 2>&1 || exit 0
+
+# Session's start directory.
+dir=$(tmux display-message -p -t "$sess" '#{pane_current_path}' 2>/dev/null || echo "$HOME")
+[[ -d "$dir" ]] || dir="$HOME"
+
+# Walk upward to find the worktree's .metamind-instance.json.
+meta=""
+d="$dir"
+while [[ -n "$d" && "$d" != "/" ]]; do
+  if [[ -f "$d/.metamind-instance.json" ]]; then
+    meta="$d/.metamind-instance.json"
+    break
+  fi
+  d=$(dirname "$d")
+done
+[[ -n "$meta" ]] || exit 0
+
+color=$(jq -r '.branchColor // empty' "$meta" 2>/dev/null || true)
+# Expect a #RRGGBB hex; ignore anything else.
+[[ "$color" =~ ^#[0-9A-Fa-f]{6}$ ]] || exit 0
+
+# Choose black/white foreground by perceived luminance for readability.
+r=$((16#${color:1:2}))
+g=$((16#${color:3:2}))
+b=$((16#${color:5:2}))
+lum=$(( (r * 299 + g * 587 + b * 114) / 1000 ))
+fg="#000000"
+(( lum < 128 )) && fg="#ffffff"
+
+tmux set-option -t "$sess" status-left "#[fg=$fg,bg=$color,bold] #S #[bg=default] "
