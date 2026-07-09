@@ -1,0 +1,40 @@
+# herdr — terminal workspace manager for AI coding agents.
+# island-mac managed default. Full reference: `herdr --default-config`.
+# After editing, reload a running server with: `herdr server reload-config`.
+
+# Onboarding already completed by island-mac; don't prompt on startup.
+onboarding = false
+
+[theme]
+# Matches island-mac's default rose-pine-moon palette.
+name = "rose-pine"
+
+[terminal]
+# New panes/tabs/workspaces inherit the launching pane's directory.
+new_cwd = "follow"
+
+[keys]
+# Prefix is ctrl+space (matches the island-mac tmux prefix). macOS's ctrl+space
+# input-source hotkey is disabled by an island-mac migration so herdr sees it.
+prefix = "ctrl+space"
+
+# Switch between agents in the agent panel (unset by default in herdr).
+previous_agent = "prefix+shift+k"   # focus the agent above
+next_agent = "prefix+shift+j"       # focus the agent below
+focus_agent = "prefix+alt+1..9"     # jump straight to agent N
+
+[session]
+# After a server restart, resume AI-agent panes into their native sessions.
+resume_agents_on_restore = true
+
+[ui]
+# Group the agent panel by space rather than the attention queue.
+agent_panel_sort = "spaces"
+
+[ui.sound]
+# Audible cue when a background agent finishes or needs attention.
+enabled = true
+
+[ui.toast]
+# Desktop notification when an agent needs you while herdr is backgrounded.
+delivery = "system"
