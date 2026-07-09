@@ -50,7 +50,7 @@ cleanup`). Theme-aware (its colors match the active theme).
 
 ## Theming
 
-Two themes ship: **rose-pine-moon** (default) and **one-dark-pro**.
+Three themes ship: **rose-pine-moon** (default), **one-dark-pro** and **tokyo-night**.
 
 ```bash
 island-theme-select            # fzf picker (also `theme`)

@@ -82,7 +82,7 @@ terminal apps + wallpaper). Targets: **ghostty, tmux, neovim, starship, wallpape
 - yazi is themed statically (Rose Pine in `config/yazi/`), not switched — matches island.
 - The ghostty template MUST keep `macos-option-as-alt = false` (regeneration would
   otherwise drop it and break Option+L = @).
-- Themes available: `rose-pine-moon` (default), `one-dark-pro`.
+- Themes available: `rose-pine-moon` (default), `one-dark-pro`, `tokyo-night`.
 
 ## Testing
 Run `./install.sh` on a macOS machine. It is idempotent. Run it twice — the second
