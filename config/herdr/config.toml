@@ -6,7 +6,7 @@
 onboarding = false
 
 [theme]
-# Matches island-mac's default rose-pine-moon palette.
+# Theme managed by island-theme-set (tracks the active island-mac theme).
 name = "rose-pine"
 
 [terminal]

@@ -95,6 +95,22 @@ echo "  Reloading components..."
 # tmux: reload theme into any running server
 tmux source-file "$HOME/.config/tmux/theme.conf" 2>/dev/null || true
 
+# herdr: point its [theme].name at the matching built-in theme and hot-reload.
+# Only the name line under [theme] is rewritten — the rest of the user's
+# herdr config (keybindings, etc.) is left untouched.
+HERDR_CFG="$HOME/.config/herdr/config.toml"
+if [[ -n "${THEME_HERDR:-}" && -f "$HERDR_CFG" ]]; then
+  tmp_herdr=$(mktemp)
+  awk -v newname="$THEME_HERDR" '
+    /^\[/ { in_theme = ($0 == "[theme]") }
+    in_theme && /^[ \t]*name[ \t]*=/ { print "name = \"" newname "\""; next }
+    { print }
+  ' "$HERDR_CFG" > "$tmp_herdr" && mv "$tmp_herdr" "$HERDR_CFG" || true
+  rm -f "$tmp_herdr" 2>/dev/null || true
+  command -v herdr >/dev/null 2>&1 && herdr server reload-config >/dev/null 2>&1 || true
+  echo "  herdr theme: $THEME_HERDR"
+fi
+
 # Wallpaper: use the theme's first wallpaper if present
 THEME_WALLS="$THEME_DIR/wallpapers"
 if [[ -d "$THEME_WALLS" ]]; then
