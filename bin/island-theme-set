@@ -122,11 +122,32 @@ render_iterm2() {
       '{($k):{"Color Space":"sRGB","Red Component":$r,"Green Component":$g,"Blue Component":$b,"Alpha Component":1}}'
   done | jq -s 'add')
 
+  # --- Typography tunables (island-mac's iTerm2 profile) ---------------------
+  # Font mirrors Ghostty's (JetBrainsMono Nerd Font), one point larger.
+  # Mono ("NFM") variant so Nerd-Font icons stay single-cell in iTerm2.
+  # Vertical Spacing 1.0 = default line height; >1 adds space between rows.
+  local font_ps="JetBrainsMonoNFM-Regular"
+  local vspace="1.15" hspace="1.0"
+  local gsize
+  gsize=$(grep -E '^font-size[[:space:]]*=' "$HOME/.config/ghostty/config" 2>/dev/null \
+    | head -1 | sed 's/.*=[[:space:]]*//')
+  [[ "$gsize" =~ ^[0-9]+$ ]] || gsize=16
+  local fontsize=$((gsize + 1))
+  # ---------------------------------------------------------------------------
+
   mkdir -p "$support/DynamicProfiles"
-  jq -n --arg name "island-mac" --arg guid "island-mac-theme" --argjson colors "$colors" \
-    '{Profiles:[ ($colors + {"Name":$name,"Guid":$guid,"Custom Command":"No"}) ]}' \
+  jq -n --arg name "island-mac" --arg guid "island-mac-theme" \
+    --arg font "$font_ps $fontsize" \
+    --argjson vspace "$vspace" --argjson hspace "$hspace" \
+    --argjson colors "$colors" \
+    '{Profiles:[ ($colors + {
+        "Name":$name, "Guid":$guid, "Custom Command":"No",
+        "Normal Font":$font, "Use Non-ASCII Font":false,
+        "Vertical Spacing":$vspace, "Horizontal Spacing":$hspace,
+        "ASCII Anti Aliased":true, "Non-ASCII Anti Aliased":true
+     }) ]}' \
     > "$support/DynamicProfiles/island-mac.json"
-  echo "  iTerm2 profile: island-mac ($THEME_NAME)"
+  echo "  iTerm2 profile: island-mac ($THEME_NAME, ${font_ps##*-} ${fontsize}pt, line ${vspace})"
 }
 
 echo "  Processing templates..."
