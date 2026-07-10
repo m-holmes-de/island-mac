@@ -14,14 +14,37 @@ name = "rose-pine"
 new_cwd = "follow"
 
 [keys]
-# Prefix is ctrl+space (matches the island-mac tmux prefix). macOS's ctrl+space
-# input-source hotkey is disabled by an island-mac migration so herdr sees it.
+# tmux-like keymap. Prefix is ctrl+space (matches the island-mac tmux prefix);
+# macOS's ctrl+space input-source hotkey is disabled by an island-mac migration
+# so herdr sees it.
 prefix = "ctrl+space"
 
-# Switch between agents in the agent panel (unset by default in herdr).
+# Prefix-less pane focus, vim / tmux-navigator style (ctrl+h/j/k/l).
+# NOTE: herdr has no vim-aware passthrough, so these capture ctrl+h/j/k/l from
+# pane apps too — you lose ^L (clear screen), ^J (newline), ^K (kill-line) and
+# ^H inside panes. Switch any that bite back to a prefix chord (e.g. prefix+l).
+focus_pane_left  = "ctrl+h"
+focus_pane_down  = "ctrl+j"
+focus_pane_up    = "ctrl+k"
+focus_pane_right = "ctrl+l"
+
+# Panes (prefix): split / zoom / close / resize-mode — tmux style.
+split_vertical   = "prefix+v"
+split_horizontal = "prefix+minus"
+zoom             = "prefix+z"
+close_pane       = "prefix+x"
+resize_mode      = "prefix+r"
+
+# Tabs = tmux "windows" (prefix): new / next / prev / jump.
+new_tab      = "prefix+c"
+next_tab     = "prefix+n"
+previous_tab = "prefix+p"
+switch_tab   = "prefix+1..9"
+
+# Agents — herdr-specific panel, walked with prefix+shift+j/k (unbound by default).
 previous_agent = "prefix+shift+k"   # focus the agent above
-next_agent = "prefix+shift+j"       # focus the agent below
-focus_agent = "prefix+alt+1..9"     # jump straight to agent N
+next_agent     = "prefix+shift+j"   # focus the agent below
+focus_agent    = "prefix+alt+1..9"  # jump straight to agent N
 
 [session]
 # After a server restart, resume AI-agent panes into their native sessions.
