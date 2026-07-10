@@ -57,8 +57,10 @@ island-theme-select            # fzf picker (also `theme`)
 island-theme-set one-dark-pro  # apply directly (add --dark for pure-black bg)
 ```
 
-Switching re-themes Ghostty, tmux, Neovim (LazyVim colorscheme) and Starship, and
-sets the desktop wallpaper. Reload Ghostty with **Cmd+Shift+,** to repaint.
+Switching re-themes Ghostty, tmux, Neovim (LazyVim colorscheme), Starship, herdr
+and iTerm2, and sets the desktop wallpaper. Reload Ghostty with **Cmd+Shift+,** to
+repaint. For iTerm2, select the generated **island-mac** profile once (Settings →
+Profiles); it then recolors live on every switch.
 Add a theme by dropping a `themes/<name>/colors.sh` (see
 [docs/architecture.md](docs/architecture.md#theme-system)).
 

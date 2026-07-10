@@ -63,6 +63,72 @@ process_template() {
   sed "$SED_CMD" "$tpl" > "$dest"
 }
 
+# "#rrggbb" -> "r g b" as 0..1 floats (C locale so decimals use '.').
+_hex_components() {
+  local hex="${1#\#}"
+  local r=$((16#${hex:0:2})) g=$((16#${hex:2:2})) b=$((16#${hex:4:2}))
+  LC_ALL=C awk -v r="$r" -v g="$g" -v b="$b" \
+    'BEGIN{printf "%.17g %.17g %.17g", r/255, g/255, b/255}'
+}
+
+# Generate an iTerm2 "island-mac" dynamic profile from the same Ghostty
+# bundled theme (THEME_GHOSTTY) that Ghostty renders, so both terminals match.
+# iTerm2 watches DynamicProfiles/ and hot-reloads. No-op without iTerm2 or jq.
+render_iterm2() {
+  local support="$HOME/Library/Application Support/iTerm2"
+  [[ -d "$support" || -d "/Applications/iTerm.app" ]] || return 0
+  command -v jq >/dev/null 2>&1 || { echo "  iTerm2: jq missing, skipping"; return 0; }
+
+  local gfile="/Applications/Ghostty.app/Contents/Resources/ghostty/themes/$THEME_GHOSTTY"
+  if [[ ! -f "$gfile" ]]; then
+    echo "  iTerm2: ghostty theme '$THEME_GHOSTTY' not found, skipping"
+    return 0
+  fi
+
+  local -a ansi=()
+  local bg fg cur curtext selbg selfg line v
+  while IFS= read -r line; do
+    case "$line" in
+      "palette = "*)              v="${line#*= }"; v="${v// /}"
+                                  ansi[${v%%=*}]="${v#*=}" ;;
+      "background = "*)           v="${line#*= }"; bg="${v// /}" ;;
+      "foreground = "*)           v="${line#*= }"; fg="${v// /}" ;;
+      "cursor-color = "*)         v="${line#*= }"; cur="${v// /}" ;;
+      "cursor-text = "*)          v="${line#*= }"; curtext="${v// /}" ;;
+      "selection-background = "*) v="${line#*= }"; selbg="${v// /}" ;;
+      "selection-foreground = "*) v="${line#*= }"; selfg="${v// /}" ;;
+    esac
+  done < "$gfile"
+
+  emit_pairs() {
+    local i
+    for ((i=0; i<=15; i++)); do
+      [[ -n "${ansi[$i]:-}" ]] && echo "Ansi $i Color|${ansi[$i]}"
+    done
+    [[ -n "${bg:-}" ]]      && echo "Background Color|$bg"
+    [[ -n "${fg:-}" ]]      && { echo "Foreground Color|$fg"; echo "Bold Color|$fg"; }
+    [[ -n "${cur:-}" ]]     && echo "Cursor Color|$cur"
+    [[ -n "${curtext:-}" ]] && echo "Cursor Text Color|$curtext"
+    [[ -n "${selbg:-}" ]]   && echo "Selection Color|$selbg"
+    [[ -n "${selfg:-}" ]]   && echo "Selected Text Color|$selfg"
+  }
+
+  local colors
+  colors=$(emit_pairs | while IFS='|' read -r key hex; do
+    [[ -n "$key" ]] || continue
+    # shellcheck disable=SC2046
+    set -- $(_hex_components "$hex")
+    jq -n --arg k "$key" --argjson r "$1" --argjson g "$2" --argjson b "$3" \
+      '{($k):{"Color Space":"sRGB","Red Component":$r,"Green Component":$g,"Blue Component":$b,"Alpha Component":1}}'
+  done | jq -s 'add')
+
+  mkdir -p "$support/DynamicProfiles"
+  jq -n --arg name "island-mac" --arg guid "island-mac-theme" --argjson colors "$colors" \
+    '{Profiles:[ ($colors + {"Name":$name,"Guid":$guid,"Custom Command":"No"}) ]}' \
+    > "$support/DynamicProfiles/island-mac.json"
+  echo "  iTerm2 profile: island-mac ($THEME_NAME)"
+}
+
 echo "  Processing templates..."
 process_template "$ISLAND_PATH/templates/ghostty-config.tpl"  "$HOME/.config/ghostty/config"
 process_template "$ISLAND_PATH/templates/tmux-theme.conf.tpl" "$HOME/.config/tmux/theme.conf"
@@ -110,6 +176,9 @@ if [[ -n "${THEME_HERDR:-}" && -f "$HERDR_CFG" ]]; then
   command -v herdr >/dev/null 2>&1 && herdr server reload-config >/dev/null 2>&1 || true
   echo "  herdr theme: $THEME_HERDR"
 fi
+
+# iTerm2: regenerate the island-mac dynamic profile (auto-reloaded by iTerm2).
+render_iterm2
 
 # Wallpaper: use the theme's first wallpaper if present
 THEME_WALLS="$THEME_DIR/wallpapers"

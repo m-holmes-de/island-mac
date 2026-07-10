@@ -66,7 +66,7 @@ Any change to deployed configs (`~/.config/`) MUST go through a migration.
 
 ## Theming
 Ported from the Linux `island` repo (desktop theming omitted — macOS only does
-terminal apps + wallpaper). Targets: **ghostty, tmux, neovim, starship, herdr, wallpaper**.
+terminal apps + wallpaper). Targets: **ghostty, tmux, neovim, starship, herdr, iterm2, wallpaper**.
 
 - `themes/<name>/colors.sh` defines a `THEME_*` palette + app hooks
   (`THEME_GHOSTTY`, `THEME_NVIM_PLUGIN`, `THEME_NVIM_COLORSCHEME`, `THEME_HERDR`).
@@ -77,6 +77,9 @@ terminal apps + wallpaper). Targets: **ghostty, tmux, neovim, starship, herdr, w
   - rewrites `~/.config/nvim/lua/plugins/island-theme.lua` (active colorscheme)
   - rewrites the `[theme].name` in `~/.config/herdr/config.toml` (`THEME_HERDR`,
     a herdr built-in theme) and hot-reloads the running herdr server
+  - generates an iTerm2 `island-mac` dynamic profile by parsing the same Ghostty
+    bundled theme (`THEME_GHOSTTY`) into `~/Library/Application Support/iTerm2/
+    DynamicProfiles/island-mac.json` (iTerm2 hot-reloads it; select the profile once)
   - sets the macOS wallpaper to the theme's first `wallpapers/` image
 - State: `~/.local/state/island-mac/current-theme`.
 - `island-theme-set <name> [--dark]` applies a theme; `island-theme-select` is an
