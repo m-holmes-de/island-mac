@@ -123,16 +123,16 @@ render_iterm2() {
   done | jq -s 'add')
 
   # --- Typography tunables (island-mac's iTerm2 profile) ---------------------
-  # Font mirrors Ghostty's (JetBrainsMono Nerd Font), one point larger.
+  # Font mirrors Ghostty's (JetBrainsMono Nerd Font), same point size.
   # Mono ("NFM") variant so Nerd-Font icons stay single-cell in iTerm2.
   # Vertical Spacing 1.0 = default line height; >1 adds space between rows.
   local font_ps="JetBrainsMonoNFM-Regular"
-  local vspace="1.15" hspace="1.0"
+  local vspace="1.15" hspace="0.9"
   local gsize
   gsize=$(grep -E '^font-size[[:space:]]*=' "$HOME/.config/ghostty/config" 2>/dev/null \
     | head -1 | sed 's/.*=[[:space:]]*//')
   [[ "$gsize" =~ ^[0-9]+$ ]] || gsize=16
-  local fontsize=$((gsize + 1))
+  local fontsize=$gsize
   # ---------------------------------------------------------------------------
 
   mkdir -p "$support/DynamicProfiles"
