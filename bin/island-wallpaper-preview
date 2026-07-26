@@ -13,10 +13,12 @@ lines="${FZF_PREVIEW_LINES:-${LINES:-30}}"
 
 if command -v chafa >/dev/null 2>&1; then
   # Outside a multiplexer: crisp kitty graphics (Ghostty native — fast and clean).
-  # Inside tmux: symbol/half-block rendering instead. kitty-over-tmux-passthrough
-  # in an fzf preview re-transmits the whole image every keypress (slow) and
-  # ghosts/misaligns on redraw; symbols are plain colored text — instant and stable.
-  if [[ -z "${TMUX:-}" ]]; then
+  # Inside a multiplexer (tmux or herdr): symbol/half-block rendering instead.
+  # kitty graphics in an fzf preview under a multiplexer re-transmit the whole
+  # image every keypress (slow) and ghost/misalign on redraw — under herdr the
+  # graphics escapes garble the preview pane outright; symbols are plain colored
+  # text — instant and stable.
+  if [[ -z "${TMUX:-}" && -z "${HERDR_ENV:-}" ]]; then
     chafa -f kitty --animate off -s "${cols}x${lines}" "$img" 2>/dev/null && exit 0
   fi
   chafa -f symbols --animate off -s "${cols}x${lines}" "$img" 2>/dev/null && exit 0
