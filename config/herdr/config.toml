@@ -41,10 +41,16 @@ next_tab     = "prefix+n"
 previous_tab = "prefix+p"
 switch_tab   = "prefix+1..9"
 
-# Agents — herdr-specific panel, walked with prefix+shift+j/k (unbound by default).
-previous_agent = "prefix+shift+k"   # focus the agent above
-next_agent     = "prefix+shift+j"   # focus the agent below
+# Agents — herdr-specific panel. Now the primary unit of movement: prefix+u/i
+# walk previous/next agent (adjacent keys, no collision with prefix+p = prev-tab).
+previous_agent = "prefix+u"         # focus the previous agent
+next_agent     = "prefix+i"         # focus the next agent
 focus_agent    = "prefix+alt+1..9"  # jump straight to agent N
+
+# Workspaces (prefix): walk previous/next on d/f — adjacent home-row keys, both
+# free of herdr defaults (close_workspace is prefix+shift+d, not prefix+d).
+previous_workspace = "prefix+d"  # focus the previous workspace
+next_workspace     = "prefix+f"  # focus the next workspace
 
 [session]
 # After a server restart, resume AI-agent panes into their native sessions.
