@@ -19,6 +19,10 @@ new_cwd = "follow"
 # so herdr sees it.
 prefix = "ctrl+space"
 
+# Goto / session viewer — jump to any workspace, tab, pane, or agent. On
+# prefix+space (thumb stays on the prefix key) rather than the default prefix+g.
+goto = "prefix+space"
+
 # Pane focus, vim-style, via prefix chord (prefix+h/j/k/l). Prefix-scoped so
 # pane apps keep ^H/^J/^K/^L (clear-screen, newline, kill-line, backspace) —
 # herdr has no vim-aware passthrough, so prefix-less ctrl+hjkl would eat them.
