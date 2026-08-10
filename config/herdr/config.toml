@@ -19,14 +19,13 @@ new_cwd = "follow"
 # so herdr sees it.
 prefix = "ctrl+space"
 
-# Prefix-less pane focus, vim / tmux-navigator style (ctrl+h/j/k/l).
-# NOTE: herdr has no vim-aware passthrough, so these capture ctrl+h/j/k/l from
-# pane apps too — you lose ^L (clear screen), ^J (newline), ^K (kill-line) and
-# ^H inside panes. Switch any that bite back to a prefix chord (e.g. prefix+l).
-focus_pane_left  = "ctrl+h"
-focus_pane_down  = "ctrl+j"
-focus_pane_up    = "ctrl+k"
-focus_pane_right = "ctrl+l"
+# Pane focus, vim-style, via prefix chord (prefix+h/j/k/l). Prefix-scoped so
+# pane apps keep ^H/^J/^K/^L (clear-screen, newline, kill-line, backspace) —
+# herdr has no vim-aware passthrough, so prefix-less ctrl+hjkl would eat them.
+focus_pane_left  = "prefix+h"
+focus_pane_down  = "prefix+j"
+focus_pane_up    = "prefix+k"
+focus_pane_right = "prefix+l"
 
 # Panes (prefix): split / zoom / close / resize-mode — tmux style.
 split_vertical   = "prefix+v"
