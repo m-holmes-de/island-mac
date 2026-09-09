@@ -135,6 +135,9 @@ render_iterm2() {
   local fontsize=$gsize
   # ---------------------------------------------------------------------------
 
+  # "Set Local Environment Vars":false disables iTerm2's automatic LANG/LC_*
+  # injection (derived from the macOS Region), which otherwise forces German
+  # (de_DE) stdout on a Germany-region Mac. Matches Ghostty, which never injects.
   mkdir -p "$support/DynamicProfiles"
   jq -n --arg name "island-mac" --arg guid "island-mac-theme" \
     --arg font "$font_ps $fontsize" \
@@ -144,7 +147,8 @@ render_iterm2() {
         "Name":$name, "Guid":$guid, "Custom Command":"No",
         "Normal Font":$font, "Use Non-ASCII Font":false,
         "Vertical Spacing":$vspace, "Horizontal Spacing":$hspace,
-        "ASCII Anti Aliased":true, "Non-ASCII Anti Aliased":true
+        "ASCII Anti Aliased":true, "Non-ASCII Anti Aliased":true,
+        "Set Local Environment Vars":false
      }) ]}' \
     > "$support/DynamicProfiles/island-mac.json"
   echo "  iTerm2 profile: island-mac ($THEME_NAME, ${font_ps##*-} ${fontsize}pt, line ${vspace})"
