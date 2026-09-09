@@ -57,6 +57,16 @@ outer.right = 8
 if.app-id = 'cc.ffitch.shottr'
 run = ['layout floating']
 
+# Pin iTerm2 to workspace 6. Without a fixed home, iTerm's windows drift onto
+# whatever workspace is focused (AeroSpace re-detects them on certain macOS
+# window events and drops them on the active workspace), and dismissing a
+# transient app like Shottr hands focus back to iTerm — dragging you to its
+# workspace. A deterministic assignment stops both surprises. Change '6' to
+# move iTerm's home, or delete this block to let iTerm float free again.
+[[on-window-detected]]
+if.app-id = 'com.googlecode.iterm2'
+run = ['move-node-to-workspace 6']
+
 [mode.main.binding]
 
 # --- Layout & window actions (mnemonic letters) ---
