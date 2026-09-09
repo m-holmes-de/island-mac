@@ -66,8 +66,8 @@ bindkey '^p' history-search-backward
 bindkey '^n' history-search-forward
 bindkey '^y' autosuggest-accept
 bindkey '^[w' kill-region
-# Ctrl+F -> tmux-sessionizer (provide your own script on PATH)
-bindkey -s ^f "tmux-sessionizer\n"
+# Ctrl+F -> Claude Code in the worktree you are standing in (island-ai)
+bindkey -s ^f "ai\n"
 
 # History
 HISTSIZE=5000
@@ -131,6 +131,8 @@ alias ff='find ./ | fzf'
 
 # island-mac helpers
 alias theme='island-theme-select'
+# Claude Code in the worktree you are standing in, tinted with its branch color.
+alias ai='island-ai'
 
 ###########################
 # ZOXIDE (must be last)   #

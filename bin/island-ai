@@ -1,0 +1,47 @@
+#!/bin/bash
+# island:summary=Run the current worktree's ./ai.sh (Claude Code), tinted with its branch color.
+# island:args=[claude args...]
+#
+# Finds ai.sh at or above $PWD and runs it from that directory, so the agent's cwd
+# is the worktree root. Without an explicit --name/-n it names the session after the
+# branch — which is what the terminal title, and so the herdr pane label, shows.
+#
+# The pane is tinted with the worktree's branch color (OSC 11) for as long as the
+# agent runs; ISLAND_AI_KEEP_COLOR=1 leaves the tint behind on exit.
+
+set -eEo pipefail
+
+root="$PWD"
+while [[ "$root" != "/" && ! -f "$root/ai.sh" ]]; do
+  root=$(dirname "$root")
+done
+if [[ ! -f "$root/ai.sh" ]]; then
+  echo "island-ai: no ai.sh in $PWD or any parent directory" >&2
+  exit 1
+fi
+
+args=("$@")
+named=0
+for arg in "${args[@]}"; do
+  [[ "$arg" == "--name" || "$arg" == "-n" ]] && named=1
+done
+if (( ! named )); then
+  branch=$(git -C "$root" symbolic-ref --quiet --short HEAD 2>/dev/null || true)
+  [[ -n "$branch" ]] || branch=$(basename "$root")
+  args=(--name "$branch" "${args[@]}")
+fi
+
+if [[ -t 1 ]]; then
+  color=$(island-worktree-color "$root" 2>/dev/null || true)
+  if [[ "$color" =~ ^#[0-9A-Fa-f]{6}$ ]]; then
+    printf '\033]11;%s\033\\' "$color"
+    [[ -n "${ISLAND_AI_KEEP_COLOR:-}" ]] || trap 'printf "\033]111\033\\"' EXIT
+  fi
+fi
+
+# A session started from inside another Claude Code session is not saved, and an
+# unsaved session can never be --resume'd.
+unset CLAUDE_CODE_CHILD_SESSION
+
+cd "$root"
+./ai.sh "${args[@]}"
