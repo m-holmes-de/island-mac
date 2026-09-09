@@ -3,8 +3,10 @@
 # island:args=[claude args...]
 #
 # Finds ai.sh at or above $PWD and runs it from that directory, so the agent's cwd
-# is the worktree root. Without an explicit --name/-n it names the session after the
-# branch — which is what the terminal title, and so the herdr pane label, shows.
+# is the worktree root. Outside a checkout that ships one — another repo, a plain
+# directory — it runs claude itself the way ai.sh would, from the repository root.
+# Without an explicit --name/-n it names the session after the branch, which is what
+# the terminal title, and so the herdr pane label, shows.
 #
 # The pane is tinted with the worktree's branch color (OSC 11) for as long as the
 # agent runs; ISLAND_AI_KEEP_COLOR=1 leaves the tint behind on exit.
@@ -15,9 +17,21 @@ root="$PWD"
 while [[ "$root" != "/" && ! -f "$root/ai.sh" ]]; do
   root=$(dirname "$root")
 done
-if [[ ! -f "$root/ai.sh" ]]; then
-  echo "island-ai: no ai.sh in $PWD or any parent directory" >&2
-  exit 1
+
+if [[ -f "$root/ai.sh" ]]; then
+  launcher=(./ai.sh)
+else
+  # No wrapper: claude direct, with the flags ai.sh would have added. mise is
+  # already active in an interactive shell, which is the other half of its job.
+  if ! command -v claude >/dev/null 2>&1; then
+    echo "island-ai: no ai.sh above $PWD, and no claude on PATH" >&2
+    exit 1
+  fi
+  root=$(git -C "$PWD" rev-parse --show-toplevel 2>/dev/null || echo "$PWD")
+  launcher=(claude --dangerously-skip-permissions)
+  : "${AI_EFFORT=high}"
+  [[ -n "$AI_EFFORT" ]] && launcher+=(--effort "$AI_EFFORT")
+  echo "island-ai: no ai.sh — running claude in $root" >&2
 fi
 
 args=("$@")
@@ -44,4 +58,4 @@ fi
 unset CLAUDE_CODE_CHILD_SESSION
 
 cd "$root"
-./ai.sh "${args[@]}"
+"${launcher[@]}" "${args[@]}"
