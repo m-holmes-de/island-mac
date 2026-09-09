@@ -9,7 +9,8 @@
 # the terminal title, and so the herdr pane label, shows.
 #
 # The pane is tinted with the worktree's branch color (OSC 11) for as long as the
-# agent runs; ISLAND_AI_KEEP_COLOR=1 leaves the tint behind on exit.
+# agent runs — dimmed to a background the text still reads on, the way the Web
+# Agent tints its terminal. ISLAND_AI_KEEP_COLOR=1 leaves the tint behind on exit.
 
 set -eEo pipefail
 
@@ -46,7 +47,7 @@ if (( ! named )); then
 fi
 
 if [[ -t 1 ]]; then
-  color=$(island-worktree-color "$root" 2>/dev/null || true)
+  color=$(island-worktree-color "$root" --bg 2>/dev/null || true)
   if [[ "$color" =~ ^#[0-9A-Fa-f]{6}$ ]]; then
     printf '\033]11;%s\033\\' "$color"
     [[ -n "${ISLAND_AI_KEEP_COLOR:-}" ]] || trap 'printf "\033]111\033\\"' EXIT

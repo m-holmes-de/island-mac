@@ -1,21 +1,27 @@
 #!/bin/bash
 # island:summary=Print the branch color (#RRGGBB) of the worktree a directory belongs to.
-# island:args=[dir] [--fg]
+# island:args=[dir] [--bg] [--fg]
 #
 # Reads ".branchColor" from the nearest .metamind-instance.json at or above dir —
 # the file a started Metamind worktree carries. A worktree that has never been
 # started has no such file, so the checkout's own `agent/wt list` answers instead
 # (it derives the same color from the path). Prints nothing and exits 1 when there
-# is no color to report. With --fg, prints black or white instead: whichever reads
-# on that background.
+# is no color to report.
+#
+# --bg dims the color to what a terminal can sit on: the same BT.601 luma cap of 50
+# the Web Agent and the desktop app apply to a worktree's terminal, scaling the
+# channels proportionally so the hue still names the branch. --fg prints black or
+# white instead: whichever reads on whichever of the two was asked for.
 
 set -eEo pipefail
 
 dir=""
 want_fg=0
+want_bg=0
 for arg in "$@"; do
   case "$arg" in
     --fg) want_fg=1 ;;
+    --bg) want_bg=1 ;;
     *) dir="$arg" ;;
   esac
 done
@@ -52,13 +58,22 @@ fi
 
 [[ "$color" =~ ^#[0-9A-Fa-f]{6}$ ]] || exit 1
 
+r=$((16#${color:1:2}))
+g=$((16#${color:3:2}))
+b=$((16#${color:5:2}))
+
+if (( want_bg )); then
+  read -r r g b < <(awk -v r="$r" -v g="$g" -v b="$b" 'BEGIN {
+    luma = 0.299 * r + 0.587 * g + 0.114 * b
+    if (luma > 50) { s = 50 / luma; r = int(r * s); g = int(g * s); b = int(b * s) }
+    print r, g, b
+  }')
+fi
+
 if (( want_fg )); then
-  r=$((16#${color:1:2}))
-  g=$((16#${color:3:2}))
-  b=$((16#${color:5:2}))
   lum=$(( (r * 299 + g * 587 + b * 114) / 1000 ))
   (( lum < 128 )) && printf '#ffffff\n' || printf '#000000\n'
   exit 0
 fi
 
-printf '%s\n' "$color"
+printf '#%02x%02x%02x\n' "$r" "$g" "$b"
