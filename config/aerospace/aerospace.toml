@@ -40,6 +40,15 @@ outer.bottom = 8
 outer.top = 8
 outer.right = 8
 
+# --- Monitor assignment ---
+# Pin workspace 10 (Hyper+0) to the external display. `secondary` is the
+# non-primary monitor in a two-monitor setup, so when an external display is
+# connected it shows workspace 10 rather than an arbitrary/extra workspace.
+# With only the built-in display present, workspace 10 falls back to it, so
+# this is a no-op single-monitor.
+[workspace-to-monitor-force-assignment]
+10 = 'secondary'
+
 # --- Window rules ---
 # Shottr's screenshot/annotation window must stay visible and on top after a
 # capture. Float it so the tiler never pushes it behind other windows.
