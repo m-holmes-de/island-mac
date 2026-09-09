@@ -51,7 +51,7 @@ run = ['layout floating']
 [mode.main.binding]
 
 # --- Layout & window actions (mnemonic letters) ---
-cmd-ctrl-alt-t = 'layout tiles horizontal vertical'       # T = Tiling
+cmd-ctrl-alt-n = 'layout tiles horizontal vertical'       # N = rotate tiling orientation (horizontal <-> vertical)
 cmd-ctrl-alt-a = 'layout accordion horizontal vertical'   # A = Accordion
 cmd-ctrl-alt-m = ['fullscreen on', 'mode monocle']        # M = Maximize -> monocle mode
 cmd-ctrl-alt-f = 'layout floating tiling'                 # F = Float (toggle floating / tiling)
