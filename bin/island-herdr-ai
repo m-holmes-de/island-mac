@@ -1,5 +1,5 @@
 #!/bin/bash
-# island:summary=Ad-hoc herdr layout assistant — describe a change, Claude proposes the herdr commands, you approve.
+# island:summary=Ad-hoc herdr layout assistant (gum TUI) — describe a change, Claude proposes herdr commands, you approve.
 # island:args=[request words...]
 #
 # Bound to prefix+a in herdr (a temporary pane, [[keys.command]] type="pane"). Ask for
@@ -8,22 +8,35 @@
 # Claude (headless, your subscription), which proposes the exact `herdr` commands. You
 # see them and confirm before anything runs — and only `herdr ...` lines are ever run.
 #
-# v1 works on named targets from the layout; "this space/pane" is ambiguous from a
-# popup pane. ISLAND_HERDR_AI_MODEL overrides the model (default: your usual model).
+# ISLAND_HERDR_AI_MODEL overrides the model (default: your usual model). Create
+# ~/.island-herdr-ai-debug to log each invocation to /tmp/island-herdr-ai.log.
 
 set -eEo pipefail
 
-command -v herdr >/dev/null 2>&1 || { echo "island-herdr-ai: herdr not on PATH" >&2; exit 1; }
-command -v claude >/dev/null 2>&1 || { echo "island-herdr-ai: claude not on PATH" >&2; exit 1; }
+# herdr may spawn this without interactive shell init, so guarantee the dirs its
+# tools live in (island bin, Homebrew, ~/.local/bin, cargo) are on PATH.
+export PATH="/opt/homebrew/bin:$HOME/.local/share/island-mac/bin:$HOME/.local/bin:$HOME/.cargo/bin:$PATH"
 
-# Keep the pane open at the end so its output is readable before herdr closes it.
-pause() { read -r -p $'\nPress Enter to close… ' _ || true; }
+# Optional breadcrumb: proves the keybind fired (and whether stdin is a TTY) even if
+# something later exits early. Enable by `touch ~/.island-herdr-ai-debug`.
+[[ -f "$HOME/.island-herdr-ai-debug" ]] && \
+  echo "$(date '+%F %T') invoked pane=${HERDR_PANE_ID:-?} tty=$(tty 2>/dev/null || echo none)" >> /tmp/island-herdr-ai.log
+
+if ! command -v gum >/dev/null 2>&1; then echo "island-herdr-ai: gum not found" >&2; sleep 3; exit 1; fi
+for dep in herdr claude; do
+  command -v "$dep" >/dev/null 2>&1 || { gum style --foreground 1 "island-herdr-ai: $dep not found on PATH"; sleep 3; exit 1; }
+done
+
+pause() { gum input --placeholder "Enter to close…" >/dev/null 2>&1 || true; }
+
+gum style --border rounded --padding "0 1" --border-foreground 4 "herdr layout assistant"
 
 request="$*"
 if [[ -z "$request" ]]; then
-  read -r -p "What layout change? " request || true
+  request=$(gum input --width 90 --prompt "Change ▸ " \
+    --placeholder "e.g. give the bid-desk agent its own space" || true)
 fi
-[[ -n "$request" ]] || { echo "Nothing asked."; pause; exit 0; }
+[[ -n "$request" ]] || { gum style --foreground 3 "Nothing asked."; pause; exit 0; }
 
 # Live layout for Claude to reason over.
 layout=$(
@@ -35,7 +48,7 @@ layout=$(
 
 read -r -d '' cheat <<'EOF' || true
 herdr CLI (targets: workspace_id like w7, tab_id like w7:t3, pane_id like w7:p9):
-  herdr workspace create --label TEXT [--cwd PATH] [--no-focus]
+  herdr workspace create --label TEXT [--no-focus]
   herdr workspace rename <workspace_id> <label>
   herdr workspace focus <workspace_id>
   herdr workspace close <workspace_id>
@@ -43,7 +56,6 @@ herdr CLI (targets: workspace_id like w7, tab_id like w7:t3, pane_id like w7:p9)
   herdr pane move <pane_id> --new-tab [--workspace ID] [--label TEXT] [--no-focus]
   herdr pane move <pane_id> --tab <tab_id> --split right|down [--no-focus]
   herdr pane rename <pane_id> <label> | --clear
-  herdr pane focus --direction left|right|up|down
   herdr agent rename <target> <name> | --clear
   herdr agent focus <target>
 EOF
@@ -57,50 +69,43 @@ $layout
 Request: $request
 
 Rules: address an agent or pane by its pane_id (e.g. w7:p9) from the AGENTS list —
-never by workspace_id. Use workspace_id (e.g. w7) only for `herdr workspace` commands.
+never by workspace_id. Use workspace_id (e.g. w7) only for \`herdr workspace\` commands.
 Output ONLY the herdr commands to run, one per line, in order, no markdown, no prose.
 If the request is impossible or unclear, output a single line starting with '# ' that says why."
 
-model_flag=()
-[[ -n "${ISLAND_HERDR_AI_MODEL:-}" ]] && model_flag=(--model "$ISLAND_HERDR_AI_MODEL")
-
-echo "Thinking…"
-# stdin from /dev/null: claude -p would otherwise swallow the terminal input we need
-# for the y/N confirm below (it reads stdin when stdin is not the prompt source).
-plan=$(claude -p "${model_flag[@]}" "$prompt" </dev/null 2>/dev/null || true)
-[[ -n "$plan" ]] || { echo "No response from Claude."; pause; exit 1; }
-
-echo
-echo "Proposed:"
-echo "-----------------------------------------"
-printf '%s\n' "$plan"
-echo "-----------------------------------------"
+# Run Claude behind a gum spinner; capture its stdout to a temp file. stdin from
+# /dev/null so claude -p never swallows the terminal input we need for confirm.
+tmp=$(mktemp)
+gum spin --spinner dot --title "Asking Claude…" --show-output -- \
+  env AIPROMPT="$prompt" AIMODEL="${ISLAND_HERDR_AI_MODEL:-}" bash -c '
+    args=(-p); [[ -n "$AIMODEL" ]] && args+=(--model "$AIMODEL")
+    claude "${args[@]}" "$AIPROMPT" </dev/null 2>/dev/null
+  ' > "$tmp" 2>/dev/null || true
+plan=$(cat "$tmp"); rm -f "$tmp"
+[[ -n "$plan" ]] || { gum style --foreground 1 "No response from Claude."; pause; exit 1; }
 
 # Only lines that are actual `herdr ...` commands are runnable; comments (# …) and any
-# stray non-herdr line are shown but never executed. (Plain read loop — macOS ships
-# Bash 3.2, which has no mapfile.)
+# stray non-herdr line are shown but never executed. (Bash 3.2 — no mapfile.)
 runnable=()
 while IFS= read -r line; do
   [[ -n "$line" ]] && runnable+=("$line")
 done < <(printf '%s\n' "$plan" | grep -E '^[[:space:]]*herdr[[:space:]]' || true)
+
+gum style --border rounded --padding "0 1" --border-foreground 6 "$plan"
+
 if (( ${#runnable[@]} == 0 )); then
-  echo $'\n(nothing runnable — see notes above)'
+  gum style --foreground 3 "Nothing runnable — see notes above."
   pause
   exit 0
 fi
 
-read -r -p $'\nRun these? [y/N] ' ans || true
-if [[ "$ans" != "y" && "$ans" != "Y" ]]; then
-  echo "Aborted — nothing changed."
-  pause
-  exit 0
+if gum confirm "Run ${#runnable[@]} command(s)?"; then
+  for line in "${runnable[@]}"; do
+    gum style --foreground 2 "\$ $line"
+    eval "$line" 2>&1 | sed 's/^/  /' || gum style --foreground 1 "  ↳ failed"
+  done
+  gum style --foreground 2 "Done."
+else
+  gum style --foreground 3 "Aborted — nothing changed."
 fi
-
-echo
-for line in "${runnable[@]}"; do
-  echo "\$ $line"
-  if eval "$line"; then :; else echo "  ↳ failed" >&2; fi
-done
-
-echo $'\nDone.'
 pause
