@@ -24,6 +24,7 @@ brew "gum"       # TUI toolkit (powers the `island` control center)
 brew "chafa"     # terminal image renderer (wallpaper preview in the picker)
 brew "jq"        # JSON processor (per-worktree session color from .metamind-instance.json)
 brew "herdr"     # terminal workspace manager for AI coding agents (config in config/herdr)
+brew "rust"      # cargo — builds ai-usagebar (Claude usage TUI) in post-install
 
 # --- Taps ---
 tap "nikitabobko/tap"   # AeroSpace window manager

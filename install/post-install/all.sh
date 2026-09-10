@@ -1,5 +1,6 @@
 island_step "Post-install"
 run_logged "$ISLAND_INSTALL/post-install/migrations.sh"
+run_logged "$ISLAND_INSTALL/post-install/cargo-tools.sh" || true
 
 island_header
 echo -e "\e[32m  Installation complete!\e[0m"
