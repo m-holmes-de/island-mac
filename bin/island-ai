@@ -5,8 +5,8 @@
 # Finds ai.sh at or above $PWD and runs it from that directory, so the agent's cwd
 # is the worktree root. Outside a checkout that ships one — another repo, a plain
 # directory — it runs claude itself the way ai.sh would, from the repository root.
-# Without an explicit --name/-n it names the session after the branch, which is what
-# the terminal title, and so the herdr pane label, shows.
+# Without an explicit --name/-n it names the session after the branch — that sets
+# claude's terminal title, and (under herdr) the agent-panel label too.
 #
 # The pane is tinted with the worktree's branch color (OSC 11) for as long as the
 # agent runs — dimmed to a background the text still reads on, the way the Web
@@ -35,15 +35,21 @@ else
   echo "island-ai: no ai.sh — running claude in $root" >&2
 fi
 
+# Capture the session name: an explicit --name/-n if the caller passed one,
+# otherwise the branch (or the directory) — injected as --name. It sets claude's
+# terminal title and, below, herdr's agent-panel label.
 args=("$@")
-named=0
+session_name=""
+prev=""
 for arg in "${args[@]}"; do
-  [[ "$arg" == "--name" || "$arg" == "-n" ]] && named=1
+  case "$prev" in --name|-n) session_name="$arg" ;; esac
+  case "$arg" in --name=*) session_name="${arg#--name=}" ;; esac
+  prev="$arg"
 done
-if (( ! named )); then
-  branch=$(git -C "$root" symbolic-ref --quiet --short HEAD 2>/dev/null || true)
-  [[ -n "$branch" ]] || branch=$(basename "$root")
-  args=(--name "$branch" "${args[@]}")
+if [[ -z "$session_name" ]]; then
+  session_name=$(git -C "$root" symbolic-ref --quiet --short HEAD 2>/dev/null || true)
+  [[ -n "$session_name" ]] || session_name=$(basename "$root")
+  args=(--name "$session_name" "${args[@]}")
 fi
 
 if [[ -t 1 ]]; then
@@ -52,6 +58,23 @@ if [[ -t 1 ]]; then
     printf '\033]11;%s\033\\' "$color"
     [[ -n "${ISLAND_AI_KEEP_COLOR:-}" ]] || trap 'printf "\033]111\033\\"' EXIT
   fi
+fi
+
+# Under herdr, the agent panel labels every agent by its kind ("claude") — it
+# does not read claude's --name (that only sets the terminal title). Push the
+# session name in as herdr's agent name so the panel reads the branch too. The
+# pane becomes a rename target only once herdr has detected the agent, so retry
+# in the background; `trap - EXIT` stops this subshell from firing the color
+# reset above when it finishes.
+if [[ -n "${HERDR_ENV:-}" && -n "${HERDR_PANE_ID:-}" && -n "$session_name" ]] \
+   && command -v herdr >/dev/null 2>&1; then
+  (
+    trap - EXIT
+    for _ in $(seq 1 30); do
+      herdr agent rename "$HERDR_PANE_ID" "$session_name" >/dev/null 2>&1 && break
+      sleep 1
+    done
+  ) &
 fi
 
 # A session started from inside another Claude Code session is not saved, and an
