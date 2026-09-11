@@ -14,28 +14,25 @@
 
 set -eEo pipefail
 
-dir=""
-for arg in "$@"; do
-  case "$arg" in
-    *) dir="$arg" ;;
-  esac
-done
-[[ -n "$dir" ]] || dir="$PWD"
+dir="${1:-$PWD}"
 [[ -d "$dir" ]] || exit 1
 dir=$(cd "$dir" && pwd)
 
 # The worktree root is the identity we name and cache against; fall back to the dir.
 root=$(git -C "$dir" rev-parse --show-toplevel 2>/dev/null || echo "$dir")
-branch=$(git -C "$root" symbolic-ref --quiet --short HEAD 2>/dev/null || true)
 
 state_dir="$HOME/.local/state/island-mac/space-names"
 cache="$state_dir/$(printf '%s' "$root" | tr -c '[:alnum:]-' '_')"
 
-# Cache hit: whatever a previous run (or you, by hand) wrote wins.
+# Cache hit: whatever a previous run (or you, by hand) wrote wins — no git branch
+# lookup needed, so this fast path forks nothing but the cache read.
 if [[ -s "$cache" ]]; then
   head -n1 "$cache"
   exit 0
 fi
+
+# Cache miss: the branch drives the AI/heuristic name below.
+branch=$(git -C "$root" symbolic-ref --quiet --short HEAD 2>/dev/null || true)
 
 # Reduce a string to a herdr-friendly label: lowercase, only [a-z0-9-], collapse and
 # trim hyphens, cap length.
