@@ -38,3 +38,9 @@ keybind = ctrl+shift+f=text:tmux-sessionizer\n
 # permission — just a config reload (Cmd+Shift+,). Swap the key if it clashes.
 keybind = cmd+period=toggle_quick_terminal
 quick-terminal-position = top
+
+# Quick-launch a tool in the focused pane — handy in the Cmd+. dropdown: Cmd+U runs
+# island-tokens (Claude usage), Cmd+Y runs yazi (files). For a side-by-side HUD, split
+# the dropdown first with Cmd+D, then Cmd+U in one pane and Cmd+Y in the other.
+keybind = cmd+u=text:island-tokens\n
+keybind = cmd+y=text:yazi\n
