@@ -32,9 +32,9 @@ mouse-scroll-multiplier = 0.95
 # instead. Ctrl+F itself runs island-ai (~/.zshrc).
 keybind = ctrl+shift+f=text:tmux-sessionizer\n
 
-# Quick terminal (Quake-style dropdown) summoned from anywhere with Hyper+`
-# (Caps Lock + backtick) — a scratch shell for island-tokens (usage), island-herdr-ai
-# (layout assistant), or anything. Global keybind: grant Ghostty access under
-# System Settings > Privacy & Security > Accessibility, once.
-keybind = global:cmd+ctrl+alt+grave_accent=toggle_quick_terminal
+# Quick terminal (Quake-style dropdown) toggled with Cmd+. while Ghostty is
+# focused — a scratch shell for island-tokens (usage), island-herdr-ai (layout
+# assistant), or anything. Not a global: keybind, so it needs no Accessibility
+# permission — just a config reload (Cmd+Shift+,). Swap the key if it clashes.
+keybind = cmd+period=toggle_quick_terminal
 quick-terminal-position = top
