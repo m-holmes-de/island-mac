@@ -2,25 +2,20 @@
 # island:summary=Ad-hoc herdr layout assistant (gum TUI) — describe a change, Claude proposes herdr commands, you approve.
 # island:args=[request words...]
 #
-# Bound to prefix+a in herdr (a temporary pane, [[keys.command]] type="pane"). Ask for
-# a layout change in plain language ("give the bid-desk agent its own space", "put all
+# Run it from the Ghostty quick-terminal dropdown (Hyper+`) — or any shell. Ask for a
+# layout change in plain language ("give the bid-desk agent its own space", "put all
 # studio agents in one tab"). It hands the live layout plus a herdr cheat-sheet to
 # Claude (headless, your subscription), which proposes the exact `herdr` commands. You
 # see them and confirm before anything runs — and only `herdr ...` lines are ever run.
+# It drives herdr over its socket, so it needs no herdr-pane context.
 #
-# ISLAND_HERDR_AI_MODEL overrides the model (default: your usual model). Create
-# ~/.island-herdr-ai-debug to log each invocation to /tmp/island-herdr-ai.log.
+# ISLAND_HERDR_AI_MODEL overrides the model (default: your usual model).
 
 set -eEo pipefail
 
-# herdr may spawn this without interactive shell init, so guarantee the dirs its
-# tools live in (island bin, Homebrew, ~/.local/bin, cargo) are on PATH.
+# Guarantee the dirs its tools live in (island bin, Homebrew, ~/.local/bin, cargo) are
+# on PATH, in case it is launched without interactive shell init.
 export PATH="/opt/homebrew/bin:$HOME/.local/share/island-mac/bin:$HOME/.local/bin:$HOME/.cargo/bin:$PATH"
-
-# Optional breadcrumb: proves the keybind fired (and whether stdin is a TTY) even if
-# something later exits early. Enable by `touch ~/.island-herdr-ai-debug`.
-[[ -f "$HOME/.island-herdr-ai-debug" ]] && \
-  echo "$(date '+%F %T') invoked pane=${HERDR_PANE_ID:-?} tty=$(tty 2>/dev/null || echo none)" >> /tmp/island-herdr-ai.log
 
 if ! command -v gum >/dev/null 2>&1; then echo "island-herdr-ai: gum not found" >&2; sleep 3; exit 1; fi
 for dep in herdr claude; do

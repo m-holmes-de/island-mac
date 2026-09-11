@@ -55,14 +55,6 @@ focus_agent    = "prefix+alt+1..9"  # jump straight to agent N
 previous_workspace = "prefix+d"  # focus the previous workspace
 next_workspace     = "prefix+f"  # focus the next workspace
 
-# Custom command: prefix+a ("ask") opens the AI layout assistant in a temporary
-# pane. Describe a layout change in plain language; Claude proposes the herdr
-# commands and you approve before they run. type = "pane" closes it on exit.
-[[keys.command]]
-key = "prefix+a"
-type = "pane"
-command = "island-herdr-ai"
-
 [session]
 # After a server restart, resume AI-agent panes into their native sessions.
 resume_agents_on_restore = true
