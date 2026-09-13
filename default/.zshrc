@@ -66,8 +66,9 @@ bindkey '^p' history-search-backward
 bindkey '^n' history-search-forward
 bindkey '^y' autosuggest-accept
 bindkey '^[w' kill-region
-# Ctrl+F -> Claude Code in the worktree you are standing in (island-ai)
-bindkey -s ^f "ai\n"
+# Ctrl+F -> herdr sessionizer: fuzzy-pick a project, jump to/create its workspace,
+# optionally launching the ai wrapper. (`ai` still runs Claude in the current pane.)
+bindkey -s ^f "island-sessionizer\n"
 
 # History
 HISTSIZE=5000

@@ -1,0 +1,84 @@
+#!/bin/bash
+# island:summary=herdr sessionizer (gum TUI) — fuzzy-pick a project, jump to its workspace or create one (optionally launching Claude via island-ai).
+# island:args=[none]
+#
+# Bound to Ctrl+F (a tmux-sessionizer for herdr). Shows a fuzzy list of live herdr
+# workspaces (with agent status) plus every project under ~/Projects with no session
+# yet. Pick one: an existing session gets focused; a fresh project gets a short-named
+# workspace (via island-space-name) and — if you confirm in the TUI — the ai wrapper
+# launched in it.
+
+set -eEo pipefail
+export PATH="/opt/homebrew/bin:$HOME/.local/share/island-mac/bin:$HOME/.local/bin:$HOME/.cargo/bin:$PATH"
+
+for dep in gum herdr jq; do
+  command -v "$dep" >/dev/null 2>&1 || { echo "island-sessionizer: $dep not found" >&2; exit 1; }
+done
+
+projects="$HOME/Projects"
+state_dir="$HOME/.local/state/island-mac/space-names"
+
+ws_json=$(herdr workspace list 2>/dev/null || echo '{}')
+ag_json=$(herdr agent list 2>/dev/null || echo '{}')
+open_cwds=$(printf '%s' "$ag_json" | jq -r '.result.agents[]?.cwd' 2>/dev/null || true)
+
+displays=(); actions=()
+
+# 1) Live herdr workspaces first, glyphed by the worst status of their agents.
+while IFS=$'\t' read -r wid label; do
+  [[ -n "$wid" ]] || continue
+  st=$(printf '%s' "$ag_json" | jq -r --arg w "$wid" \
+        '[.result.agents[]? | select(.workspace_id==$w) | .agent_status] | join(",")' 2>/dev/null || true)
+  case "$st" in
+    *blocked*) g="⏸" ;;
+    *working*) g="⚙" ;;
+    *idle*)    g="✓" ;;
+    *)         g="·" ;;
+  esac
+  displays+=("$g  $label   ⟨session⟩")
+  actions+=("ws:$wid")
+done < <(printf '%s' "$ws_json" | jq -r '.result.workspaces[]? | [.workspace_id, .label] | @tsv' 2>/dev/null || true)
+
+# 2) Projects under ~/Projects that have no running agent yet. Use the cached short
+# name if there is one (cheap) — never call the AI namer here, or opening the picker
+# would fork claude for every uncached dir.
+for d in "$projects"/*/; do
+  d="${d%/}"
+  [[ -d "$d" ]] || continue
+  printf '%s\n' "$open_cwds" | grep -qxF "$d" && continue
+  key=$(printf '%s' "$d" | tr -c '[:alnum:]-' '_')
+  if [[ -s "$state_dir/$key" ]]; then name=$(head -n1 "$state_dir/$key"); else name=$(basename "$d"); fi
+  branch=$(git -C "$d" symbolic-ref --quiet --short HEAD 2>/dev/null || true)
+  displays+=("○  $name   ·  ${branch:-$(basename "$d")}")
+  actions+=("dir:$d")
+done
+
+(( ${#displays[@]} )) || { echo "island-sessionizer: nothing to show" >&2; exit 0; }
+
+sel=$(printf '%s\n' "${displays[@]}" | gum filter --height 20 --prompt "session ❯ " --placeholder "type to filter…" || true)
+[[ -n "$sel" ]] || exit 0
+
+action=""
+for i in "${!displays[@]}"; do
+  [[ "${displays[$i]}" == "$sel" ]] && { action="${actions[$i]}"; break; }
+done
+[[ -n "$action" ]] || exit 0
+
+case "$action" in
+  ws:*)
+    herdr workspace focus "${action#ws:}" >/dev/null 2>&1
+    ;;
+  dir:*)
+    dir="${action#dir:}"
+    # Ask BEFORE creating — once the new workspace takes focus, this pane no longer
+    # receives the confirm keystrokes.
+    launch=no
+    gum confirm "Launch a Claude agent in this workspace?" && launch=yes
+    label=$(island-space-name "$dir")
+    out=$(herdr workspace create --label "$label" --cwd "$dir" --focus 2>/dev/null || true)
+    pane=$(printf '%s' "$out" | jq -r '.result.root_pane.pane_id // empty' 2>/dev/null || true)
+    if [[ "$launch" == "yes" && -n "$pane" ]]; then
+      herdr pane run "$pane" "island-ai" >/dev/null 2>&1 || true
+    fi
+    ;;
+esac
