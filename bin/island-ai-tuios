@@ -1,0 +1,84 @@
+#!/bin/bash
+# island:summary=Run island-ai (Claude Code) for the current worktree in tuios, the pane named after its branch.
+# island:args=[claude args...]
+#
+# Inside tuios it runs in the pane you are in, which it names after the branch behind a
+# coloured square for its branch color (tuios does not paint island-ai's tint); the name
+# goes back to the shell's title when Claude exits. Outside tuios it opens a pane in the
+# repository's session (named after the main checkout, created when missing) and
+# attaches: an ordinary shell that runs island-ai, so the shell stays when Claude exits.
+# After a daemon restart tuios types `claude --resume <id>` into the pane's shell, which
+# ~/.zshrc routes back through island-ai. island-herdr-ai is the herdr equivalent.
+
+set -eEo pipefail
+
+if ! command -v tuios >/dev/null 2>&1; then
+  echo "island-ai-tuios: tuios is not installed (brew install tuios)" >&2
+  exit 1
+fi
+
+root=$(git -C "$PWD" rev-parse --show-toplevel 2>/dev/null || echo "$PWD")
+branch=$(git -C "$root" symbolic-ref --quiet --short HEAD 2>/dev/null || basename "$root")
+
+# tuios does not paint the background island-ai sets (OSC 11), so the pane name
+# carries the branch color instead: the coloured square nearest its hue.
+name="$branch"
+color=$(island-worktree-color "$root" 2>/dev/null || true)
+if [[ "$color" =~ ^#[0-9A-Fa-f]{6}$ ]]; then
+  square=$(awk -v r=$((16#${color:1:2})) -v g=$((16#${color:3:2})) -v b=$((16#${color:5:2})) 'BEGIN {
+    max = r; if (g > max) max = g; if (b > max) max = b
+    min = r; if (g < min) min = g; if (b < min) min = b
+    d = max - min
+    if (max < 20) { print "⬛"; exit }
+    if (d / max < 0.15) { print (max > 160 ? "⬜" : "⬛"); exit }
+    if (max == r) h = 60 * (((g - b) / d) % 6)
+    else if (max == g) h = 60 * ((b - r) / d + 2)
+    else h = 60 * ((r - g) / d + 4)
+    if (h < 0) h += 360
+    if (h < 15 || h >= 335) print "🟥"
+    else if (h < 45) print (max < 140 ? "🟫" : "🟧")
+    else if (h < 70) print "🟨"
+    else if (h < 175) print "🟩"
+    else if (h < 255) print "🟦"
+    else print "🟪"
+  }')
+  [[ -n "$square" ]] && name="$square $branch"
+fi
+
+# Inside tuios: this pane becomes the agent's.
+if [[ -n "${TUIOS_SESSION:-}" && -n "${TUIOS_PANE_ID:-}" ]]; then
+  pane=(--session "$TUIOS_SESSION" --window "$TUIOS_PANE_ID")
+  tuios set-window "${pane[@]}" --name "$name" >/dev/null 2>&1 || true
+  trap 'tuios set-window "${pane[@]}" --name "" >/dev/null 2>&1 || true' EXIT
+  island-ai "$@"
+  exit
+fi
+
+# Outside tuios: one session per repository, its worktrees a pane each.
+common=$(git -C "$root" rev-parse --path-format=absolute --git-common-dir 2>/dev/null || true)
+if [[ -n "$common" ]]; then
+  session=$(basename "$(dirname "$common")")
+else
+  session=$(basename "$root")
+fi
+session=${session//[^A-Za-z0-9_-]/-}
+if ! tuios ls --json 2>/dev/null | jq -e --arg s "$session" 'any(.[]; .name == $s)' >/dev/null; then
+  tuios new "$session" --detach --cwd "$root" >/dev/null
+  # A new session opens with one empty shell: run the agent in that one.
+  id=$(tuios ls --json | jq -r --arg s "$session" '.[] | select(.name == $s) | .windows[0].id')
+  tuios set-window --session "$session" --window "$id" --name "$name" >/dev/null
+elif tuios ls --json | jq -e --arg s "$session" 'any(.[]; .name == $s and .saved == true)' >/dev/null; then
+  # Saved on disk but not running (the daemon was stopped): a starting daemon
+  # restores every saved session.
+  tuios start-server >/dev/null
+fi
+
+# The line typed into the pane's shell, every argument quoted for it.
+line="island-ai"
+for arg in "$@"; do
+  line+=" $(printf '%q' "$arg")"
+done
+
+[[ -n "${id:-}" ]] || id=$(tuios new-window "$name" --session "$session" --cwd "$root" --print-id)
+tuios send-text --session "$session" --window "$id" "$line"$'\n' >/dev/null
+exec tuios attach "$session"

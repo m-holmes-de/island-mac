@@ -66,10 +66,10 @@ Any change to deployed configs (`~/.config/`) MUST go through a migration.
 
 ## Theming
 Ported from the Linux `island` repo (desktop theming omitted — macOS only does
-terminal apps + wallpaper). Targets: **ghostty, tmux, neovim, starship, herdr, iterm2, wallpaper**.
+terminal apps + wallpaper). Targets: **ghostty, tmux, neovim, starship, herdr, tuios, iterm2, wallpaper**.
 
 - `themes/<name>/colors.sh` defines a `THEME_*` palette + app hooks
-  (`THEME_GHOSTTY`, `THEME_NVIM_PLUGIN`, `THEME_NVIM_COLORSCHEME`, `THEME_HERDR`).
+  (`THEME_GHOSTTY`, `THEME_NVIM_PLUGIN`, `THEME_NVIM_COLORSCHEME`, `THEME_HERDR`, `THEME_TUIOS`).
 - `templates/*.tpl` hold `{{THEME_VAR}}` placeholders. `island-theme-set` sources
   the palette, sed-substitutes every `THEME_*` var, and writes:
   - `templates/ghostty-config.tpl` -> `~/.config/ghostty/config`
@@ -77,6 +77,8 @@ terminal apps + wallpaper). Targets: **ghostty, tmux, neovim, starship, herdr, i
   - rewrites `~/.config/nvim/lua/plugins/island-theme.lua` (active colorscheme)
   - rewrites the `[theme].name` in `~/.config/herdr/config.toml` (`THEME_HERDR`,
     a herdr built-in theme) and hot-reloads the running herdr server
+  - rewrites `appearance.theme` in `~/.config/tuios/config.toml` (`THEME_TUIOS`,
+    a tuios built-in theme) and runs `tuios config apply` to hot-reload the daemon
   - generates an iTerm2 `island-mac` dynamic profile by parsing the same Ghostty
     bundled theme (`THEME_GHOSTTY`) into `~/Library/Application Support/iTerm2/
     DynamicProfiles/island-mac.json` (iTerm2 hot-reloads it; select the profile once)

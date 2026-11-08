@@ -1,0 +1,73 @@
+#!/bin/bash
+# island:summary=Move the current herdr pane into its worktree's own space (create or reuse).
+# island:args=[dir] [--focus] [--dry-run]
+#
+# One space per worktree, named the way island-space-name names it. Looks for a space
+# already labelled for this worktree and joins it; creates one if there is none; does
+# nothing if the pane is already there. island-ai calls this at launch, but it is a
+# general helper — run it by hand anytime to re-home the pane you are standing in.
+#
+# Needs to run inside a herdr pane (uses $HERDR_PANE_ID / $HERDR_WORKSPACE_ID). Outside
+# herdr it prints a note and exits 0. --focus follows the pane to its space (default is
+# to stay put); --dry-run prints the herdr command instead of running it.
+#
+# On success it prints the pane's effective id to stdout (its NEW id if it moved — a move
+# reassigns the id — else the unchanged one), so a caller can keep targeting the pane.
+# All human-readable status goes to stderr.
+
+set -eEo pipefail
+
+dir=""
+want_focus=0
+dry_run=0
+for arg in "$@"; do
+  case "$arg" in
+    --focus) want_focus=1 ;;
+    --dry-run) dry_run=1 ;;
+    *) dir="$arg" ;;
+  esac
+done
+[[ -n "$dir" ]] || dir="$PWD"
+
+if [[ -z "${HERDR_ENV:-}" || -z "${HERDR_PANE_ID:-}" ]]; then
+  echo "island-space: not inside a herdr pane — nothing to do" >&2
+  exit 0
+fi
+command -v herdr >/dev/null 2>&1 || { echo "island-space: herdr not on PATH" >&2; exit 0; }
+command -v jq >/dev/null 2>&1 || { echo "island-space: jq not on PATH" >&2; exit 0; }
+
+label=$(island-space-name "$dir")
+[[ -n "$label" ]] || { echo "island-space: could not derive a space name" >&2; exit 1; }
+
+# A space already labelled for this worktree, if any. Current space is in this list, so
+# a pane whose space already carries the label resolves to itself and no move happens.
+target_id=$(herdr workspace list 2>/dev/null \
+  | jq -r --arg l "$label" '.result.workspaces[]? | select(.label == $l) | .workspace_id' \
+  | head -n1)
+
+if [[ -n "$target_id" && "$target_id" == "${HERDR_WORKSPACE_ID:-}" ]]; then
+  echo "island-space: already in space '$label'" >&2
+  printf '%s\n' "$HERDR_PANE_ID"
+  exit 0
+fi
+
+focus_flag="--no-focus"
+(( want_focus )) && focus_flag="--focus"
+
+if [[ -n "$target_id" ]]; then
+  cmd=(herdr pane move "$HERDR_PANE_ID" --new-tab --workspace "$target_id" "$focus_flag")
+else
+  cmd=(herdr pane move "$HERDR_PANE_ID" --new-workspace --label "$label" "$focus_flag")
+fi
+
+if (( dry_run )); then
+  printf '%q ' "${cmd[@]}"; printf '\n'
+  exit 0
+fi
+
+# A move reassigns the pane id; hand the new one back on stdout so callers can retarget.
+out=$("${cmd[@]}" 2>/dev/null || true)
+new_pane=$(printf '%s' "$out" | jq -r '.result.move_result.pane.pane_id // empty' 2>/dev/null || true)
+[[ -n "$new_pane" ]] || { echo "island-space: move failed" >&2; exit 1; }
+echo "island-space: pane -> space '$label'" >&2
+printf '%s\n' "$new_pane"

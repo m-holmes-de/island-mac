@@ -66,8 +66,9 @@ bindkey '^p' history-search-backward
 bindkey '^n' history-search-forward
 bindkey '^y' autosuggest-accept
 bindkey '^[w' kill-region
-# Ctrl+F -> Claude Code in the worktree you are standing in (island-ai)
-bindkey -s ^f "ai\n"
+# Ctrl+F -> tuios sessionizer: fuzzy-pick a project and open/create its tuios
+# session (inside tuios, a new window instead). (`ai` still runs Claude in place.)
+bindkey -s ^f "island-tuios-sessionizer\n"
 
 # History
 HISTSIZE=5000

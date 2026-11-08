@@ -27,7 +27,15 @@ confirm-close-surface = false
 
 mouse-scroll-multiplier = 0.95
 
-# Ctrl+Shift+F -> tmux-sessionizer. The terminal cannot tell Ctrl+Shift+F from
-# Ctrl+F on the wire, so the shell cannot bind it — Ghostty types the command
-# instead. Ctrl+F itself runs island-ai (~/.zshrc).
-keybind = ctrl+shift+f=text:tmux-sessionizer\n
+# Quick terminal (Quake-style dropdown) toggled with Cmd+. while Ghostty is
+# focused — a scratch shell for island-tokens (usage), island-herdr-ai (layout
+# assistant), or anything. Not a global: keybind, so it needs no Accessibility
+# permission — just a config reload (Cmd+Shift+,). Swap the key if it clashes.
+keybind = cmd+period=toggle_quick_terminal
+quick-terminal-position = top
+
+# Quick-launch a tool in the focused pane — handy in the Cmd+. dropdown: Cmd+U runs
+# island-tokens (Claude usage), Cmd+Y runs yazi (files). For a side-by-side HUD, split
+# the dropdown first with Cmd+D, then Cmd+U in one pane and Cmd+Y in the other.
+keybind = cmd+u=text:island-tokens\n
+keybind = cmd+y=text:yazi\n

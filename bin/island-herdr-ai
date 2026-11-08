@@ -1,0 +1,107 @@
+#!/bin/bash
+# island:summary=Ad-hoc herdr layout assistant (gum TUI) — describe a change, Claude proposes herdr commands, you approve.
+# island:args=[request words...]
+#
+# Run it from the Ghostty quick-terminal dropdown (Hyper+`) — or any shell. Ask for a
+# layout change in plain language ("give the bid-desk agent its own space", "put all
+# studio agents in one tab"). It hands the live layout plus a herdr cheat-sheet to
+# Claude (headless, your subscription), which proposes the exact `herdr` commands. You
+# see them and confirm before anything runs — and only `herdr ...` lines are ever run.
+# It drives herdr over its socket, so it needs no herdr-pane context.
+#
+# ISLAND_HERDR_AI_MODEL overrides the model (default: your usual model).
+
+set -eEo pipefail
+
+# Guarantee the dirs its tools live in are on PATH, in case it is launched without
+# interactive shell init. ~/.local/bin FIRST so the herdr that matches the running
+# server wins over a different-version Homebrew herdr (protocol_mismatch otherwise).
+export PATH="$HOME/.local/bin:$HOME/.local/share/island-mac/bin:/opt/homebrew/bin:$HOME/.cargo/bin:$PATH"
+
+if ! command -v gum >/dev/null 2>&1; then echo "island-herdr-ai: gum not found" >&2; sleep 3; exit 1; fi
+for dep in herdr claude; do
+  command -v "$dep" >/dev/null 2>&1 || { gum style --foreground 1 "island-herdr-ai: $dep not found on PATH"; sleep 3; exit 1; }
+done
+
+pause() { gum input --placeholder "Enter to close…" >/dev/null 2>&1 || true; }
+
+gum style --border rounded --padding "0 1" --border-foreground 4 "herdr layout assistant"
+
+request="$*"
+if [[ -z "$request" ]]; then
+  request=$(gum input --width 90 --prompt "Change ▸ " \
+    --placeholder "e.g. give the bid-desk agent its own space" || true)
+fi
+[[ -n "$request" ]] || { gum style --foreground 3 "Nothing asked."; pause; exit 0; }
+
+# Live layout for Claude to reason over.
+layout=$(
+  printf 'WORKSPACES:\n%s\nTABS:\n%s\nAGENTS:\n%s\n' \
+    "$(herdr workspace list 2>/dev/null)" \
+    "$(herdr tab list 2>/dev/null)" \
+    "$(herdr agent list 2>/dev/null)"
+)
+
+read -r -d '' cheat <<'EOF' || true
+herdr CLI (targets: workspace_id like w7, tab_id like w7:t3, pane_id like w7:p9):
+  herdr workspace create --label TEXT [--no-focus]
+  herdr workspace rename <workspace_id> <label>
+  herdr workspace focus <workspace_id>
+  herdr workspace close <workspace_id>
+  herdr pane move <pane_id> --new-workspace [--label TEXT] [--no-focus]
+  herdr pane move <pane_id> --new-tab [--workspace ID] [--label TEXT] [--no-focus]
+  herdr pane move <pane_id> --tab <tab_id> --split right|down [--no-focus]
+  herdr pane rename <pane_id> <label> | --clear
+  herdr agent rename <target> <name> | --clear
+  herdr agent focus <target>
+EOF
+
+prompt="You translate a layout request into herdr CLI commands.
+$cheat
+
+Current layout:
+$layout
+
+Request: $request
+
+Rules: address an agent or pane by its pane_id (e.g. w7:p9) from the AGENTS list —
+never by workspace_id. Use workspace_id (e.g. w7) only for \`herdr workspace\` commands.
+Output ONLY the herdr commands to run, one per line, in order, no markdown, no prose.
+If the request is impossible or unclear, output a single line starting with '# ' that says why."
+
+# Run Claude behind a gum spinner; capture its stdout to a temp file. stdin from
+# /dev/null so claude -p never swallows the terminal input we need for confirm.
+tmp=$(mktemp)
+gum spin --spinner dot --title "Asking Claude…" --show-output -- \
+  env AIPROMPT="$prompt" AIMODEL="${ISLAND_HERDR_AI_MODEL:-}" bash -c '
+    args=(-p); [[ -n "$AIMODEL" ]] && args+=(--model "$AIMODEL")
+    claude "${args[@]}" "$AIPROMPT" </dev/null 2>/dev/null
+  ' > "$tmp" 2>/dev/null || true
+plan=$(cat "$tmp"); rm -f "$tmp"
+[[ -n "$plan" ]] || { gum style --foreground 1 "No response from Claude."; pause; exit 1; }
+
+# Only lines that are actual `herdr ...` commands are runnable; comments (# …) and any
+# stray non-herdr line are shown but never executed. (Bash 3.2 — no mapfile.)
+runnable=()
+while IFS= read -r line; do
+  [[ -n "$line" ]] && runnable+=("$line")
+done < <(printf '%s\n' "$plan" | grep -E '^[[:space:]]*herdr[[:space:]]' || true)
+
+gum style --border rounded --padding "0 1" --border-foreground 6 "$plan"
+
+if (( ${#runnable[@]} == 0 )); then
+  gum style --foreground 3 "Nothing runnable — see notes above."
+  pause
+  exit 0
+fi
+
+if gum confirm "Run ${#runnable[@]} command(s)?"; then
+  for line in "${runnable[@]}"; do
+    gum style --foreground 2 "\$ $line"
+    eval "$line" 2>&1 | sed 's/^/  /' || gum style --foreground 1 "  ↳ failed"
+  done
+  gum style --foreground 2 "Done."
+else
+  gum style --foreground 3 "Aborted — nothing changed."
+fi
+pause

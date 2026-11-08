@@ -1,0 +1,84 @@
+#!/bin/bash
+# island:summary=Print a short herdr-space name for the worktree a directory belongs to.
+# island:args=[dir]
+#
+# Names a worktree the way you'd name it yourself: "virtamed", "bid-desk". There is
+# no clean rule from a branch like feature/insights-bid-desk-pr4 to bid-desk, so the
+# first time a worktree is seen Claude (headless, your subscription) picks the label
+# and it is cached under ~/.local/state/island-mac/space-names/. Later calls read the
+# cache — no AI, no latency. Edit or delete a cache file to override a name by hand.
+#
+# Works without Claude (or outside a Studio checkout): a branch-name heuristic answers
+# instead, so this always prints something usable. ISLAND_SPACE_MODEL picks the model
+# (default: haiku — fast and cheap for a two-word answer).
+
+set -eEo pipefail
+
+dir="${1:-$PWD}"
+[[ -d "$dir" ]] || exit 1
+dir=$(cd "$dir" && pwd)
+
+# The worktree root is the identity we name and cache against; fall back to the dir.
+root=$(git -C "$dir" rev-parse --show-toplevel 2>/dev/null || echo "$dir")
+
+state_dir="$HOME/.local/state/island-mac/space-names"
+cache="$state_dir/$(printf '%s' "$root" | tr -c '[:alnum:]-' '_')"
+
+# Cache hit: whatever a previous run (or you, by hand) wrote wins — no git branch
+# lookup needed, so this fast path forks nothing but the cache read.
+if [[ -s "$cache" ]]; then
+  head -n1 "$cache"
+  exit 0
+fi
+
+# Cache miss: the branch drives the AI/heuristic name below.
+branch=$(git -C "$root" symbolic-ref --quiet --short HEAD 2>/dev/null || true)
+
+# Reduce a string to a herdr-friendly label: lowercase, only [a-z0-9-], collapse and
+# trim hyphens, cap length.
+sanitize() {
+  printf '%s' "$1" \
+    | tr '[:upper:]' '[:lower:]' \
+    | tr -c 'a-z0-9-' '-' \
+    | sed -E 's/-+/-/g; s/^-+//; s/-+$//' \
+    | cut -c1-24
+}
+
+# Heuristic name from the branch, used when Claude cannot answer. Drop the category
+# prefix (feature/, fix/, ...) and a trailing PR/version tag; what remains is the name.
+heuristic() {
+  local b="${branch:-$(basename "$root")}"
+  b="${b##*/}"                                   # feature/insights-bid-desk-pr4 -> insights-bid-desk-pr4
+  b=$(printf '%s' "$b" | sed -E 's/-(pr|v|rev)[0-9]+$//I')  # strip -pr4 / -v2
+  sanitize "$b"
+}
+
+# Run claude -p under a timeout if one is available (coreutils on macOS is optional).
+run_claude() {
+  local model="${ISLAND_SPACE_MODEL:-haiku}"
+  local prompt="You name terminal workspaces. For the git branch '$branch' in repository '$(basename "$root")', reply with ONLY a short 1-2 word lowercase kebab-case label (letters, digits, hyphens; max 20 chars). No quotes, no punctuation, no explanation."
+  local runner=(claude -p --model "$model")
+  # stdin from /dev/null so a non-interactive caller (island-ai at launch) never blocks.
+  if command -v timeout >/dev/null 2>&1; then
+    timeout 30 "${runner[@]}" "$prompt" </dev/null 2>/dev/null || true
+  elif command -v gtimeout >/dev/null 2>&1; then
+    gtimeout 30 "${runner[@]}" "$prompt" </dev/null 2>/dev/null || true
+  else
+    "${runner[@]}" "$prompt" </dev/null 2>/dev/null || true
+  fi
+}
+
+name=""
+if [[ -n "$branch" ]] && command -v claude >/dev/null 2>&1; then
+  # Accept the answer only if it is a single short kebab token. A model error or a
+  # chatty reply comes back with spaces/punctuation or over-long — reject those and
+  # let the heuristic answer instead, rather than turning prose into a "name".
+  raw=$(run_claude | head -n1 | tr -d '\r' | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//')
+  [[ "$raw" =~ ^[A-Za-z0-9][A-Za-z0-9-]{0,23}$ ]] && name=$(sanitize "$raw")
+fi
+[[ -n "$name" ]] || name=$(heuristic)
+[[ -n "$name" ]] || name=$(sanitize "$(basename "$root")")
+
+mkdir -p "$state_dir"
+printf '%s\n' "$name" > "$cache"
+printf '%s\n' "$name"

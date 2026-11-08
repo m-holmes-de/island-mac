@@ -1,0 +1,27 @@
+#!/bin/bash
+# island:summary=Open the Claude usage TUI (session / weekly / per-model quota) — ai-usagebar-tui.
+# island:args=[ai-usagebar-tui args...]
+#
+# A thin launcher for ai-usagebar-tui, which reads the Claude Code OAuth token from
+# the macOS Keychain and shows plan quota (5-hour session, 7-day weekly, per-model)
+# with time-to-reset. Installed with `cargo install ai-usagebar` into ~/.cargo/bin,
+# which is not on PATH — so resolve it there directly, then fall back to PATH.
+#
+# With no args it opens the TUI. `island-tokens usage` (or any ai-usagebar-tui args)
+# is passed straight through.
+
+set -eEo pipefail
+
+bin="$HOME/.cargo/bin/ai-usagebar-tui"
+[[ -x "$bin" ]] || bin=$(command -v ai-usagebar-tui 2>/dev/null || true)
+
+if [[ -z "$bin" ]]; then
+  cat >&2 <<'MSG'
+island-tokens: ai-usagebar-tui not found.
+Install it with:  cargo install ai-usagebar
+(needs Rust: brew install rust). Config: ~/.config/ai-usagebar/config.toml
+MSG
+  exit 127
+fi
+
+exec "$bin" "$@"
