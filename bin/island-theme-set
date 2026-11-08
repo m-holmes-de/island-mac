@@ -202,6 +202,26 @@ if [[ -n "${THEME_HERDR:-}" && -f "$HERDR_CFG" ]]; then
   echo "  herdr theme: $THEME_HERDR"
 fi
 
+# tuios: point appearance.theme at the matching built-in theme and hot-reload.
+# Only the theme line under [appearance] is rewritten — the rest of the config
+# (keybindings, startup, etc.) is left untouched. tuios watches the file and
+# live-applies a save; `tuios config apply` (a no-op from inside tuios) also pushes
+# it. On macOS tuios reads its OS-native dir (~/Library/Application Support/tuios),
+# not ~/.config — ask tuios where that is.
+TUIOS_CFG=$(command -v tuios >/dev/null 2>&1 && tuios config path 2>/dev/null || true)
+[[ -n "$TUIOS_CFG" ]] || TUIOS_CFG="$HOME/Library/Application Support/tuios/config.toml"
+if [[ -n "${THEME_TUIOS:-}" && -f "$TUIOS_CFG" ]]; then
+  tmp_tuios=$(mktemp)
+  awk -v newname="$THEME_TUIOS" '
+    /^\[/ { in_appearance = ($0 == "[appearance]") }
+    in_appearance && /^[ \t]*theme[ \t]*=/ { print "theme = \"" newname "\""; next }
+    { print }
+  ' "$TUIOS_CFG" > "$tmp_tuios" && mv "$tmp_tuios" "$TUIOS_CFG" || true
+  rm -f "$tmp_tuios" 2>/dev/null || true
+  command -v tuios >/dev/null 2>&1 && tuios config apply >/dev/null 2>&1 || true
+  echo "  tuios theme: $THEME_TUIOS"
+fi
+
 # iTerm2: regenerate the island-mac dynamic profile (auto-reloaded by iTerm2).
 render_iterm2
 

@@ -1,0 +1,66 @@
+# island-mac managed — tuios, a terminal window manager for AI coding agents.
+# tuios watches this file: a save applies at once (island-theme-set also runs
+# `tuios config apply`). Every option: `tuios list-options`, or the settings page
+# (<prefix> ,). Docs: https://tuios.dev/docs/configuration
+#
+# This is the macOS port of island-ubuntu's tuios config — the same keybindings,
+# with theming wired to island-theme-set instead of Omarchy.
+
+[appearance]
+# island-theme-set rewrites this line to the tuios built-in matching the active
+# island theme (rose_pine_moon / one_dark / tokyo_night) and hot-reloads tuios.
+theme = "rose_pine_moon"
+# Master-stack (see [startup] layout) as a plain master and stack, also from four panes
+# on, instead of turning into a grid.
+master_grid = false
+
+[appearance.sidebar]
+# The session rail (sidebar) on the left; tuios puts it on the right.
+position = "left"
+
+[keybindings]
+# tmux's keys after the leader, on Ctrl+Space like island's tmux and herdr
+# (run one of them at a time). `tuios keybinds cheatsheet tmux` lists them.
+preset = "tmux"
+leader_key = "ctrl+space"
+
+[keybindings.prefix_mode]
+# island's tmux split: <prefix> v side by side (tmux's % and | still work);
+# <prefix> - top/bottom is the preset's already.
+prefix_split_vertical = ["v", "%", "|"]
+# <prefix> Space opens the workspace switcher (as herdr's goto), not the layout cycle;
+# <prefix> w still opens it too.
+prefix_workspace_switcher = ["space", "w"]
+# <prefix> Tab cycles the layout (BSP, master-stack, scrolling), tmux's <prefix> Space.
+cycle_layout = ["tab"]
+# Esc after the prefix no longer leaves terminal mode for window mode, which it was
+# easy to end up in by accident (Esc cancelling a prefix). Window mode is still in the
+# command palette (Ctrl+P); i or Enter goes back to typing.
+prefix_exit_mode = []
+
+[keybindings.terminal_mode]
+# terminal_mode bindings fire WHILE YOU TYPE in a pane, so NEVER bind a bare key here —
+# a plain h/j/k/l (or arrow) would be stolen from the shell and become untypeable (the
+# Ubuntu config's bare h/j/k/l focus did exactly that on macOS). Leave the focus keys
+# at their defaults: directional pane focus is then reachable via the prefix and arrows
+# (Ctrl+Space then ←/↓/↑/→), which the tmux preset provides. tuios 0.12.1 has no
+# prefix+h/j/k/l directional focus — that only exists in window mode (Esc), which we
+# keep disabled below so Esc stays usable inside vim/Claude.
+#
+# Keep Esc in terminal mode so a stray Esc can't drop you into window mode by accident.
+terminal_exit_mode = []
+
+[keybindings.lists]
+# Ctrl+J / Ctrl+K move down / up in every list, also the ones you type a filter into
+# (workspace and session switcher, command palette), where plain j/k go to the filter.
+# Lists without a filter (sidebar, Inbox, settings) take j/k as well.
+list_down = ["down", "ctrl+n", "j", "ctrl+j"]
+list_up = ["up", "ctrl+p", "k", "ctrl+k"]
+
+[startup]
+tiled = true
+# New sessions tile master-stack, like AeroSpace's accordion/master feel: the first
+# pane on the left, the rest stacked on the right. <prefix> L Enter swaps a pane with
+# the master.
+layout = "master-stack"
+daemon = true

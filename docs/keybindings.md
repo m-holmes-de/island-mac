@@ -67,11 +67,38 @@ Prefix is **Ctrl+Space** (with **Ctrl+b** as a fallback). Defined in
 `claude / server / yazi / term` (yazi auto-starts in its window). See
 `bin/island-tmux-windows`.
 
+## tuios
+
+A terminal window manager for AI coding agents (alongside herdr), themed by
+`island-theme-set`. Config in `config/tuios/config.toml`. Launch a project in it
+with **Ctrl+F** at a shell prompt (`island-tuios-sessionizer`), or run Claude Code
+in a branch-named pane with `island-ai-tuios`.
+
+Leader is **Ctrl+Space** (`tmux` preset), same as herdr. After the leader:
+
+| Keys | Action |
+|------|--------|
+| v / % / \| | Split side by side |
+| - | Split top / bottom |
+| Space / w | Workspace switcher |
+| Tab | Cycle layout (BSP / master-stack / scrolling) |
+| h / j / k / l | Focus pane left / down / up / right |
+
+While typing in a pane (terminal mode):
+
+| Keys | Action |
+|------|--------|
+| Alt + H / J / K / L | Resize the focused pane |
+| Ctrl + J / K | Move down / up in any list |
+
+New sessions tile master-stack; the session rail is on the left. Full cheatsheet:
+`tuios keybinds cheatsheet tmux`.
+
 ## Shell (zsh)
 
 | Keys | Action |
 |------|--------|
-| Ctrl+F | `tmux-sessionizer` — fzf project-session picker |
+| Ctrl+F | `island-tuios-sessionizer` — fzf project picker, opens in tuios |
 | Ctrl+R | fzf history search |
 | `theme` | Launch the theme picker (`island-theme-select`) |
 | `island` | Launch the control-center TUI |

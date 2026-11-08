@@ -4,16 +4,61 @@
 #
 # Bound to Ctrl+F (a tmux-sessionizer for herdr). Shows a fuzzy list of live herdr
 # workspaces (with agent status) plus every project under ~/Projects with no session
-# yet. Pick one: an existing session gets focused; a fresh project gets a short-named
-# workspace (via island-space-name) and — if you confirm in the TUI — the ai wrapper
-# launched in it.
+# yet. Pick one: an existing session gets focused; for a fresh project you choose
+# whether to launch the ai wrapper, and whether it opens in a new short-named workspace
+# (via island-space-name) or a grid-tiled pane in the CURRENT workspace (aim for a 2x2
+# grid per tab, overflowing to a new tab once a tab is full).
 
 set -eEo pipefail
-export PATH="/opt/homebrew/bin:$HOME/.local/share/island-mac/bin:$HOME/.local/bin:$HOME/.cargo/bin:$PATH"
+# ~/.local/bin FIRST: the running herdr server lives there, and a Homebrew herdr of
+# a different version would fail every call with protocol_mismatch. Homebrew (gum/jq)
+# comes after — nothing island needs is shadowed by that order.
+export PATH="$HOME/.local/bin:$HOME/.local/share/island-mac/bin:/opt/homebrew/bin:$HOME/.cargo/bin:$PATH"
 
 for dep in gum herdr jq; do
   command -v "$dep" >/dev/null 2>&1 || { echo "island-sessionizer: $dep not found" >&2; exit 1; }
 done
+
+# Optional breadcrumb for debugging a launch: touch ~/.island-sessionizer-debug.
+_dbg() { [[ -f "$HOME/.island-sessionizer-debug" ]] && printf '%s %s\n' "$(date '+%T')" "$*" >> /tmp/island-sessionizer.log || true; }
+_dbg "=== invoked (HERDR_ENV=${HERDR_ENV:-unset} pane=${HERDR_PANE_ID:-unset}) ==="
+
+# Place a new pane in workspace $1 (cwd $2), tiling toward a 2x2 grid per tab: grow
+# the first tab that still has room (<4 panes), else open a fresh tab. Echoes the new
+# pane_id (empty on failure). Pane-id order is read as creation/spatial order, which
+# is how splits below build the grid — good enough for grids this tool makes; a tab
+# the user has hand-rearranged may tile unevenly, never wrongly.
+grid_place() {
+  local wid="$1" cwd="$2" tabid panes tgt dir_split out
+  tabid=$(herdr tab list --workspace "$wid" 2>/dev/null \
+    | jq -r --arg w "$wid" \
+        '[.result.tabs[]? | select(.workspace_id==$w and .pane_count<4)] | sort_by(.number) | .[0].tab_id // empty' \
+        2>/dev/null || true)
+  if [[ -z "$tabid" ]]; then
+    # Every tab is already a full 2x2 — overflow into a fresh tab, agent in its root.
+    out=$(herdr tab create --workspace "$wid" --cwd "$cwd" --focus 2>/dev/null || true)
+    printf '%s' "$out" | jq -r '.result.root_pane.pane_id // empty' 2>/dev/null || true
+    return 0
+  fi
+  # Panes of that tab in creation order; the split target + direction grow a clean 2x2:
+  #   1 pane  -> split it right        (two columns)
+  #   2 panes -> split the first down  (left column -> two rows)
+  #   3 panes -> split the second down (right column -> two rows, grid complete)
+  panes=$(herdr pane list --workspace "$wid" 2>/dev/null \
+    | jq -r --arg t "$tabid" \
+        '[.result.panes[]? | select(.tab_id==$t) | .pane_id] | sort_by(sub("^.*:p";"")|tonumber) | .[]' \
+        2>/dev/null || true)
+  local p=()
+  while IFS= read -r _x; do [[ -n "$_x" ]] && p+=("$_x"); done <<< "$panes"
+  case "${#p[@]}" in
+    0) return 1 ;;
+    1) tgt="${p[0]}"; dir_split=right ;;
+    2) tgt="${p[0]}"; dir_split=down ;;
+    *) tgt="${p[1]:-${p[0]}}"; dir_split=down ;;
+  esac
+  out=$(herdr pane split "$tgt" --direction "$dir_split" --cwd "$cwd" --focus 2>/dev/null || true)
+  printf '%s' "$out" | jq -r '.result.pane.pane_id // empty' 2>/dev/null || true
+}
 
 projects="$HOME/Projects"
 state_dir="$HOME/.local/state/island-mac/space-names"
@@ -62,6 +107,7 @@ action=""
 for i in "${!displays[@]}"; do
   [[ "${displays[$i]}" == "$sel" ]] && { action="${actions[$i]}"; break; }
 done
+_dbg "selected sel='$sel' action='$action'"
 [[ -n "$action" ]] || exit 0
 
 case "$action" in
@@ -70,15 +116,55 @@ case "$action" in
     ;;
   dir:*)
     dir="${action#dir:}"
-    # Ask BEFORE creating — once the new workspace takes focus, this pane no longer
-    # receives the confirm keystrokes.
+    # Ask now, while this pane still has focus (gum needs the keystrokes).
     launch=no
     gum confirm "Launch a Claude agent in this workspace?" && launch=yes
-    label=$(island-space-name "$dir")
-    out=$(herdr workspace create --label "$label" --cwd "$dir" --focus 2>/dev/null || true)
-    pane=$(printf '%s' "$out" | jq -r '.result.root_pane.pane_id // empty' 2>/dev/null || true)
-    if [[ "$launch" == "yes" && -n "$pane" ]]; then
-      herdr pane run "$pane" "island-ai" >/dev/null 2>&1 || true
+
+    # Where should it land? A fresh workspace (the original behaviour), or a pane in
+    # the CURRENT workspace tiled toward a 2x2 grid. Only offer "current" when we have
+    # a herdr pane to anchor the split to — always true under Ctrl+F, false if someone
+    # runs island-sessionizer from a plain shell.
+    place=new
+    if [[ -n "${HERDR_PANE_ID:-}" ]]; then
+      choice=$(printf 'New workspace\nCurrent workspace (tile)\n' \
+        | gum choose --header "Where?" || true)
+      [[ "$choice" == Current* ]] && place=current
     fi
+    _dbg "dir='$dir' launch=$launch place=$place"
+
+    # Tile into the current workspace: no new workspace, no island-space-name label
+    # (island-ai names the agent off the branch itself). Fall through to a new
+    # workspace if tiling could not place a pane.
+    if [[ "$place" == "current" ]]; then
+      newpane=$(grid_place "${HERDR_PANE_ID%%:*}" "$dir")
+      _dbg "grid_place -> '$newpane'"
+      if [[ -n "$newpane" ]]; then
+        [[ "$launch" == "yes" ]] && herdr pane run "$newpane" "island-ai" >/dev/null 2>&1 || true
+        _dbg "done: tiled pane $newpane, launched=$launch"
+        exit 0
+      fi
+      gum style --foreground 3 "island-sessionizer: could not tile a pane — opening a new workspace instead"
+    fi
+
+    label=$(island-space-name "$dir")
+    _dbg "label='$label'"
+    # Create UNFOCUSED then focus explicitly, retrying once — creating with --focus
+    # from inside the calling pane, or under load, can return without the new ids.
+    wid=""; pane=""
+    for _try in 1 2 3; do
+      out=$(herdr workspace create --label "$label" --cwd "$dir" --no-focus 2>/dev/null || true)
+      wid=$(printf '%s' "$out" | jq -r '.result.workspace.workspace_id // empty' 2>/dev/null || true)
+      pane=$(printf '%s' "$out" | jq -r '.result.root_pane.pane_id // empty' 2>/dev/null || true)
+      _dbg "create try=$_try outlen=${#out} wid='$wid' pane='$pane'"
+      [[ -n "$wid" ]] && break
+      sleep 1
+    done
+    if [[ -z "$wid" ]]; then
+      gum style --foreground 1 "island-sessionizer: could not create workspace '$label'"
+      exit 1
+    fi
+    [[ "$launch" == "yes" && -n "$pane" ]] && herdr pane run "$pane" "island-ai" >/dev/null 2>&1 || true
+    herdr workspace focus "$wid" >/dev/null 2>&1 || true
+    _dbg "done: focused $wid, launched=$launch"
     ;;
 esac

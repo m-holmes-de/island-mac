@@ -27,11 +27,6 @@ confirm-close-surface = false
 
 mouse-scroll-multiplier = 0.95
 
-# Ctrl+Shift+F -> tmux-sessionizer. The terminal cannot tell Ctrl+Shift+F from
-# Ctrl+F on the wire, so the shell cannot bind it — Ghostty types the command
-# instead. Ctrl+F itself runs island-ai (~/.zshrc).
-keybind = ctrl+shift+f=text:tmux-sessionizer\n
-
 # Quick terminal (Quake-style dropdown) toggled with Cmd+. while Ghostty is
 # focused — a scratch shell for island-tokens (usage), island-herdr-ai (layout
 # assistant), or anything. Not a global: keybind, so it needs no Accessibility

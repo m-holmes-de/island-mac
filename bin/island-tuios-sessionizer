@@ -1,0 +1,35 @@
+#!/bin/bash
+# island:summary=Pick a project directory with fzf and open it in tuios (Ctrl+F in the shell).
+#
+# island-tuios-sessionizer [dir]
+#
+# Outside tuios: attaches to the project's tuios session, creating it in that
+# directory. Inside tuios: opens a window there in the current session instead
+# (attaching from a pane would nest one tuios in another). tmux-sessionizer is the
+# tmux version; island-sessionizer is the herdr one.
+
+set -eEo pipefail
+
+# Base directories to search for projects (only those that exist are used).
+BASES=("$HOME/Projects" "$HOME/work" "$HOME/dev" "$HOME/.config")
+
+if [[ $# -eq 1 ]]; then
+  selected="$1"
+else
+  dirs=()
+  for b in "${BASES[@]}"; do [[ -d "$b" ]] && dirs+=("$b"); done
+  selected=$(
+    { find "${dirs[@]}" -mindepth 1 -maxdepth 1 -type d 2>/dev/null; echo "$HOME"; } \
+      | fzf --reverse --height 40% --border --prompt='Project > '
+  ) || exit 0
+fi
+
+[[ -n "$selected" && -d "$selected" ]] || exit 0
+name=$(basename "$selected" | tr '. ' '__')
+
+if [[ -n "${TUIOS_SESSION:-}" ]]; then
+  exec tuios new-window "$name" --cwd "$selected" >/dev/null
+fi
+
+cd "$selected"
+exec tuios attach -c "$name"

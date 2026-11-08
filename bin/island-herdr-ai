@@ -13,9 +13,10 @@
 
 set -eEo pipefail
 
-# Guarantee the dirs its tools live in (island bin, Homebrew, ~/.local/bin, cargo) are
-# on PATH, in case it is launched without interactive shell init.
-export PATH="/opt/homebrew/bin:$HOME/.local/share/island-mac/bin:$HOME/.local/bin:$HOME/.cargo/bin:$PATH"
+# Guarantee the dirs its tools live in are on PATH, in case it is launched without
+# interactive shell init. ~/.local/bin FIRST so the herdr that matches the running
+# server wins over a different-version Homebrew herdr (protocol_mismatch otherwise).
+export PATH="$HOME/.local/bin:$HOME/.local/share/island-mac/bin:/opt/homebrew/bin:$HOME/.cargo/bin:$PATH"
 
 if ! command -v gum >/dev/null 2>&1; then echo "island-herdr-ai: gum not found" >&2; sleep 3; exit 1; fi
 for dep in herdr claude; do
