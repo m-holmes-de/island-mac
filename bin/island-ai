@@ -60,23 +60,20 @@ if [[ -t 1 ]]; then
   fi
 fi
 
-# The agent panel labels every agent by its kind ("claude") — it does not read
-# claude's --name (that only sets the terminal title). Push the session name in as
-# herdr's agent name so the panel reads the branch too. The pane becomes a rename
-# target only once herdr has detected the agent, so retry in the background;
-# `trap - EXIT` stops this subshell from firing the color reset above when it finishes.
-# (Workspace placement is island-sessionizer's job now, not island-ai's — ai runs the
-# agent in whatever pane you're in.)
-if [[ -n "${HERDR_ENV:-}" && -n "${HERDR_PANE_ID:-}" && -n "$session_name" ]] \
-   && command -v herdr >/dev/null 2>&1; then
-  (
-    trap - EXIT
-    for _ in $(seq 1 30); do
-      herdr agent rename "$HERDR_PANE_ID" "$session_name" >/dev/null 2>&1 && break
-      sleep 1
-    done
-  ) &
-fi
+# [tuios-primary] herdr agent-panel rename disabled — tuios is the window manager now
+# (island-ai-tuios names the pane after the branch). The block below only ran under
+# herdr (HERDR_ENV set) and was already a no-op elsewhere; kept commented for an easy
+# revert if herdr comes back.
+# if [[ -n "${HERDR_ENV:-}" && -n "${HERDR_PANE_ID:-}" && -n "$session_name" ]] \
+#    && command -v herdr >/dev/null 2>&1; then
+#   (
+#     trap - EXIT
+#     for _ in $(seq 1 30); do
+#       herdr agent rename "$HERDR_PANE_ID" "$session_name" >/dev/null 2>&1 && break
+#       sleep 1
+#     done
+#   ) &
+# fi
 
 # A session started from inside another Claude Code session is not saved, and an
 # unsaved session can never be --resume'd.

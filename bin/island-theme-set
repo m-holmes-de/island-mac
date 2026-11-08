@@ -1,5 +1,5 @@
 #!/bin/bash
-# island:summary=Switch the island-mac theme (ghostty, tmux, neovim, wallpaper).
+# island:summary=Switch the island-mac theme (ghostty, tuios, neovim, wallpaper).
 # island:args=<theme-name> [--dark]
 
 set -eEo pipefail
@@ -156,8 +156,9 @@ render_iterm2() {
 
 echo "  Processing templates..."
 process_template "$ISLAND_PATH/templates/ghostty-config.tpl"  "$HOME/.config/ghostty/config"
-process_template "$ISLAND_PATH/templates/tmux-theme.conf.tpl" "$HOME/.config/tmux/theme.conf"
 process_template "$ISLAND_PATH/templates/starship.toml.tpl"   "$HOME/.config/starship.toml"
+# [tuios-primary] tmux theme disabled — not using tmux. Re-enable with the reload below.
+# process_template "$ISLAND_PATH/templates/tmux-theme.conf.tpl" "$HOME/.config/tmux/theme.conf"
 
 # Neovim — rewrite the active colorscheme plugin
 NVIM_THEME="$HOME/.config/nvim/lua/plugins/island-theme.lua"
@@ -183,24 +184,26 @@ fi
 
 # Apply to running components
 echo "  Reloading components..."
-# tmux: reload theme into any running server
-tmux source-file "$HOME/.config/tmux/theme.conf" 2>/dev/null || true
 
-# herdr: point its [theme].name at the matching built-in theme and hot-reload.
-# Only the name line under [theme] is rewritten — the rest of the user's
-# herdr config (keybindings, etc.) is left untouched.
-HERDR_CFG="$HOME/.config/herdr/config.toml"
-if [[ -n "${THEME_HERDR:-}" && -f "$HERDR_CFG" ]]; then
-  tmp_herdr=$(mktemp)
-  awk -v newname="$THEME_HERDR" '
-    /^\[/ { in_theme = ($0 == "[theme]") }
-    in_theme && /^[ \t]*name[ \t]*=/ { print "name = \"" newname "\""; next }
-    { print }
-  ' "$HERDR_CFG" > "$tmp_herdr" && mv "$tmp_herdr" "$HERDR_CFG" || true
-  rm -f "$tmp_herdr" 2>/dev/null || true
-  command -v herdr >/dev/null 2>&1 && herdr server reload-config >/dev/null 2>&1 || true
-  echo "  herdr theme: $THEME_HERDR"
-fi
+# [tuios-primary] tmux + herdr theming disabled — tuios is the window manager now.
+# Both were guarded no-ops without a running tmux / herdr config; kept commented for
+# an easy revert. tuios theming is applied below.
+# # tmux: reload theme into any running server
+# tmux source-file "$HOME/.config/tmux/theme.conf" 2>/dev/null || true
+#
+# # herdr: point its [theme].name at the matching built-in theme and hot-reload.
+# HERDR_CFG="$HOME/.config/herdr/config.toml"
+# if [[ -n "${THEME_HERDR:-}" && -f "$HERDR_CFG" ]]; then
+#   tmp_herdr=$(mktemp)
+#   awk -v newname="$THEME_HERDR" '
+#     /^\[/ { in_theme = ($0 == "[theme]") }
+#     in_theme && /^[ \t]*name[ \t]*=/ { print "name = \"" newname "\""; next }
+#     { print }
+#   ' "$HERDR_CFG" > "$tmp_herdr" && mv "$tmp_herdr" "$HERDR_CFG" || true
+#   rm -f "$tmp_herdr" 2>/dev/null || true
+#   command -v herdr >/dev/null 2>&1 && herdr server reload-config >/dev/null 2>&1 || true
+#   echo "  herdr theme: $THEME_HERDR"
+# fi
 
 # tuios: point appearance.theme at the matching built-in theme and hot-reload.
 # Only the theme line under [appearance] is rewritten — the rest of the config
